@@ -18,12 +18,12 @@ export default function AuthLayout({ children }) {
     "Plan, simulate, and optimize your retirement strategy.";
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-white dark:bg-black">
+    <div className="grid min-h-screen bg-white lg:grid-cols-2 dark:bg-black">
       
       {/* LEFT SIDE */}
-      <div className="relative hidden lg:block m-6 rounded-3xl overflow-hidden border border-black/10">
+      <div className="relative hidden m-6 overflow-hidden border lg:block rounded-3xl border-black/10">
         <Image
-          src="https://i.pinimg.com/736x/7d/6d/52/7d6d522ab06bd923e9d91dd7628885c5.jpg"
+          src="/loginImage.jpg"
           alt="Authentication"
           fill
           priority
@@ -33,8 +33,8 @@ export default function AuthLayout({ children }) {
 
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-[#0606EA]/40" />
 
-        <div className="absolute bottom-12 left-12 text-white z-10 max-w-md">
-          <h1 className="text-4xl font-heading font-semibold leading-tight">
+        <div className="absolute z-10 max-w-md text-white bottom-12 left-12">
+          <h1 className="text-4xl font-semibold leading-tight font-heading">
             Smarter Retirement Planning
           </h1>
           <p className="mt-4 text-sm opacity-90">
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }) {
         </div>
 
         {/* HOME BUTTON */}
-        <div className="absolute top-6 right-6 z-10">
+        <div className="absolute z-10 top-6 right-6">
           <Link href="/">
             <Button variant="outline" size="icon">
               <Home size={18} />
@@ -74,7 +74,7 @@ export default function AuthLayout({ children }) {
         </div>
 
         {/* CARD */}
-        <Card className="relative w-full max-w-md z-10 backdrop-blur-xl bg-white/90 dark:bg-neutral-900/80 border border-black/10 shadow-xl">
+        <Card className="relative z-10 w-full max-w-md border shadow-xl backdrop-blur-xl bg-white/90 dark:bg-neutral-900/80 border-black/10">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-heading">
               {title}

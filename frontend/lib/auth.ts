@@ -4,71 +4,124 @@ import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
+
   providers: [
+
     CredentialsProvider({
+
       name: "Credentials",
+
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
+
+        email: {
+          label: "Email",
+          type: "text",
+        },
+
+        password: {
+          label: "Password",
+          type: "password",
+        },
+
       },
 
       async authorize(credentials) {
+
         if (!credentials?.email || !credentials?.password) {
+
           throw new Error("Missing credentials");
+
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const user =
+          await prisma.user.findUnique({
 
-        if (!user || !user.password) {
+            where: {
+              email: credentials.email,
+            },
+
+          });
+
+        if (!user) {
+
           throw new Error("User not found");
+
         }
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const isValid =
+          await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
 
         if (!isValid) {
+
           throw new Error("Invalid password");
+
         }
 
         return {
+
           id: user.id,
-          name: user.name ?? "",
+          name: user.name,
           email: user.email,
+
+          // ⭐ REQUIRED
           role: user.role,
+
         };
+
       },
+
     }),
+
   ],
 
   session: {
+
     strategy: "jwt",
+
   },
 
   pages: {
+
     signIn: "/auth/signin",
+
   },
 
   callbacks: {
+
     async jwt({ token, user }) {
+
       if (user) {
+
         token.id = user.id;
         token.role = user.role;
+
       }
+
       return token;
+
     },
 
     async session({ session, token }) {
+
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
+
+        session.user.id =
+          token.id as string;
+
+        session.user.role =
+          token.role as "ADMIN" | "USER";
+
       }
+
       return session;
+
     },
+
   },
 
   secret: process.env.NEXTAUTH_SECRET,
+
 };

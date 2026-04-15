@@ -6,24 +6,43 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 import {
   LayoutDashboard,
-  Calculator,
-  History,
-  LogOut,
+  Users,
+  FileText,
+  Activity,
   Home,
-  BarChart3, // ✅ added
+  LogOut,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Projection", href: "/dashboard/projection", icon: Calculator },
-  { title: "History", href: "/dashboard/history", icon: History },
-  { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 }, // ✅ added
+  {
+    title: "Overview",
+    href: "/admin/dashboard",
+    icon: LayoutDashboard,
+  },
+
+  {
+    title: "Users",
+    href: "/admin/dashboard/users",
+    icon: Users,
+  },
+
+  {
+    title: "Reports",
+    href: "/admin/dashboard/reports",
+    icon: FileText,
+  },
+
+  {
+    title: "System Logs",
+    href: "/admin/dashboard/logs",
+    icon: Activity,
+  },
 ];
 
-export default function Sidebar() {
+export default function AdminSidebar() {
   const pathname = usePathname();
   const { open } = useSidebar();
 
@@ -35,18 +54,29 @@ export default function Sidebar() {
       )}
     >
       {/* Logo */}
+
       <div className="flex items-center justify-center p-6 border-b">
-        {open && <h2 className="text-xl font-bold">ZikoRetire</h2>}
+        {open && (
+          <h2 className="text-xl font-bold">
+            ZikoRetire Admin
+          </h2>
+        )}
       </div>
 
       {/* Navigation */}
+
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
+
           return (
             <Link key={item.href} href={item.href}>
               <Button
-                variant={pathname === item.href ? "default" : "ghost"}
+                variant={
+                  pathname === item.href
+                    ? "default"
+                    : "ghost"
+                }
                 className={cn(
                   "w-full justify-start gap-2",
                   !open && "justify-center"
@@ -60,11 +90,15 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Home + Logout */}
+      {/* Footer */}
+
       <div className="flex flex-col gap-2 p-4 border-t">
         <Link href="/">
           <Button
-            className={cn("w-full gap-2", !open && "justify-center")}
+            className={cn(
+              "w-full gap-2",
+              !open && "justify-center"
+            )}
             variant="outline"
           >
             <Home size={18} />
@@ -73,7 +107,10 @@ export default function Sidebar() {
         </Link>
 
         <Button
-          className={cn("w-full gap-2", !open && "justify-center")}
+          className={cn(
+            "w-full gap-2",
+            !open && "justify-center"
+          )}
           variant="outline"
         >
           <LogOut size={18} />

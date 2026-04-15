@@ -11,22 +11,26 @@ enum Role {
   USER
 }
 
+enum ScenarioType {
+  CONSERVATIVE
+  MODERATE
+  AGGRESSIVE
+  CUSTOM
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String?
   email     String   @unique
-  password  String   // ✅ NOT nullable now
+  password  String
 
   role      Role     @default(USER)
-
 
   emailVerified DateTime?
   image         String?
 
-
   simulations Simulation[]
   scenarios   Scenario[]
-
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -35,6 +39,7 @@ model User {
 model Simulation {
   id                   String   @id @default(cuid())
   userId               String
+
   age                  Int
   retirementAge        Int
   monthlyIncome        Float
@@ -44,8 +49,10 @@ model Simulation {
   lifestyle            String
 
   user   User   @relation(fields: [userId], references: [id])
+
   result Result?
   recommendations Recommendation[]
+  scenarios Scenario[]
 
   createdAt DateTime @default(now())
 }
@@ -53,6 +60,7 @@ model Simulation {
 model Result {
   id                         String  @id @default(cuid())
   simulationId               String  @unique
+
   projectedValue             Float
   monthlyRetirementIncome    Float
   rsiScore                   Float
@@ -64,26 +72,58 @@ model Result {
 }
 
 model Scenario {
-  id                    String  @id @default(cuid())
-  userId                String
-  name                  String
-  baseSimulationId      String
-  modifiedContribution  Float?
-  modifiedRetirementAge Int?
+  id            String   @id @default(cuid())
 
-  user User @relation(fields: [userId], references: [id])
+  userId        String
+  simulationId  String
+
+  name          String
+  scenarioType  ScenarioType?   // ✅ Conservative, Moderate, etc.
+
+  // 🔁 FULL OVERRIDE MODEL (nullable = fallback to base simulation)
+  age                  Int?
+  retirementAge        Int?
+  monthlyIncome        Float?
+  monthlyContribution  Float?
+  currentSavings       Float?
+  inflationRate        Float?
+  lifestyle            String?
+
+  user        User       @relation(fields: [userId], references: [id])
+  simulation  Simulation @relation(fields: [simulationId], references: [id])
+
+  result ScenarioResult?
+  recommendations Recommendation[]   // ✅ scenario-specific ML output
+
+  createdAt DateTime @default(now())
+}
+
+model ScenarioResult {
+  id                         String  @id @default(cuid())
+  scenarioId                 String  @unique
+
+  projectedValue             Float
+  monthlyRetirementIncome    Float
+  rsiScore                   Float
+  readinessLevel             String
+
+  scenario Scenario @relation(fields: [scenarioId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
 model Recommendation {
   id              String  @id @default(cuid())
-  simulationId    String
+
+  simulationId    String?
+  scenarioId      String?
+
   message         String
   type            String
   confidenceScore Float?
 
-  simulation Simulation @relation(fields: [simulationId], references: [id])
+  simulation Simulation? @relation(fields: [simulationId], references: [id])
+  scenario   Scenario?   @relation(fields: [scenarioId], references: [id])
 
   createdAt DateTime @default(now())
 }

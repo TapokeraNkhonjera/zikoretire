@@ -1,6 +1,6 @@
-import HistoryClient from "@/components/sections/history/HistoryClient"
+import { HistorySimulation } from "./types"
 
-const simulations = [
+export const mockHistoryData: HistorySimulation[] = [
 
   {
     id: "1",
@@ -36,14 +36,3 @@ const simulations = [
   }
 
 ]
-
-export default function HistoryPage() {
-
-  return (
-
-    <HistoryClient
-      simulations={simulations}
-    />
-
-  )
-}

@@ -4,7 +4,7 @@ import { RecentActivity } from "@/components/sections/dashboard/recent-activity"
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6 lg:gap-8">
+    <div className="flex flex-col gap-6 pt-12 lg:gap-8 ">
 
       {/* Header */}
       <div>
