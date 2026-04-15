@@ -7,10 +7,7 @@ import {
 } from "@/components/ui/table"
 
 import HistoryRow from "./HistoryRow"
-
-import {
-  HistorySimulation
-} from "./types"
+import { HistorySimulation } from "./types"
 
 export default function HistoryTable({
   simulations
@@ -20,31 +17,35 @@ export default function HistoryTable({
 
   return (
 
-    <div className="overflow-x-auto border rounded-xl">
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
 
       <Table>
 
         <TableHeader>
 
-          <TableRow>
+          <TableRow className="bg-muted/40">
 
-            <TableHead>
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
               Date
             </TableHead>
 
-            <TableHead>
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
+              Income Type
+            </TableHead>
+
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground text-right">
               Monthly Income
             </TableHead>
 
-            <TableHead>
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground text-right">
               Projected Value
             </TableHead>
 
-            <TableHead>
-              RSI Score
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground text-right">
+              RSI
             </TableHead>
 
-            <TableHead>
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground text-right">
               Status
             </TableHead>
 
@@ -54,16 +55,14 @@ export default function HistoryTable({
 
         <TableBody>
 
-          {simulations.map(
-            (sim) => (
+          {simulations.map((sim) => (
 
-              <HistoryRow
-                key={sim.id}
-                simulation={sim}
-              />
+            <HistoryRow
+              key={sim.id}
+              simulation={sim}
+            />
 
-            )
-          )}
+          ))}
 
         </TableBody>
 

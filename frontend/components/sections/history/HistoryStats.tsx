@@ -1,11 +1,18 @@
+"use client"
+
 import {
   Card,
   CardContent
 } from "@/components/ui/card"
 
+import { HistorySimulation } from "./types"
+
 import {
-  HistorySimulation
-} from "./types"
+  Layers,
+  TrendingUp,
+  Wallet,
+  Activity
+} from "lucide-react"
 
 export default function HistoryStats({
   simulations
@@ -13,117 +20,122 @@ export default function HistoryStats({
   simulations: HistorySimulation[]
 }) {
 
-  /* TOTAL SIMULATIONS */
-
-  const totalSimulations =
-    simulations.length
-
-  /* FINAL PROJECTED VALUE */
+  const totalSimulations = simulations.length
 
   const finalProjectedValue =
-    simulations[
-      simulations.length - 1
-    ]?.result?.projectedValue ?? 0
-
-  /* TOTAL MONTHLY INCOME */
+    simulations[simulations.length - 1]?.result?.projectedValue ?? 0
 
   const totalMonthlyIncome =
     simulations.reduce(
-      (sum, sim) =>
-        sum + sim.monthlyIncome,
+      (sum, sim) => sum + sim.monthlyIncome,
       0
     )
 
-  /* LAST RSI SCORE */
-
   const latestRsi =
-    simulations[
-      simulations.length - 1
-    ]?.result?.rsiScore ?? 0
+    simulations[simulations.length - 1]?.result?.rsiScore ?? 0
+
+  /* RSI STATE */
+  const getRsiState = () => {
+    if (latestRsi >= 70) return "Healthy"
+    if (latestRsi >= 40) return "Moderate"
+    return "At Risk"
+  }
+
+  const getRsiColor = () => {
+    if (latestRsi >= 70) return "text-primary"
+    if (latestRsi >= 40) return "text-amber-500"
+    return "text-destructive"
+  }
+
+  const stats = [
+    {
+      label: "Total Simulations",
+      value: totalSimulations,
+      icon: Layers,
+      suffix: "",
+      sub: "All recorded projections"
+    },
+    {
+      label: "Final Projection",
+      value: finalProjectedValue,
+      icon: TrendingUp,
+      prefix: "MWK",
+      sub: "Latest simulation outcome"
+    },
+    {
+      label: "Monthly Income",
+      value: totalMonthlyIncome,
+      icon: Wallet,
+      prefix: "MWK",
+      sub: "Combined expected income"
+    },
+    {
+      label: "RSI Score",
+      value: latestRsi.toFixed(1),
+      icon: Activity,
+      suffix: "%",
+      sub: getRsiState(),
+      highlight: true
+    }
+  ]
 
   return (
 
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-      {/* TOTAL SIMULATIONS */}
+      {stats.map((stat, i) => {
 
-      <Card>
+        const Icon = stat.icon
 
-        <CardContent className="p-6">
+        return (
 
-          <p className="text-sm text-muted-foreground">
-            Total Simulations
-          </p>
+          <Card
+            key={i}
+            className="border border-border/60 bg-card hover:border-border transition"
+          >
+            <CardContent className="p-5">
 
-          <p className="mt-1 text-3xl font-bold">
-            {totalSimulations}
-          </p>
+              {/* TOP ROW */}
+              <div className="flex items-center justify-between mb-4">
 
-        </CardContent>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground">
+                  {stat.label}
+                </p>
 
-      </Card>
+                <div className="flex items-center justify-center w-9 h-9 border rounded-md bg-muted/40 border-border/60">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                </div>
 
-      {/* FINAL PROJECTED VALUE */}
+              </div>
 
-      <Card>
+              {/* VALUE */}
+              <div className="space-y-1">
 
-        <CardContent className="p-6">
+                <p
+                  className={`text-2xl font-semibold tracking-tight ${
+                    stat.highlight ? getRsiColor() : "text-foreground"
+                  }`}
+                >
+                  {stat.prefix && `${stat.prefix} `}
+                  {typeof stat.value === "number"
+                    ? stat.value.toLocaleString()
+                    : stat.value}
+                  {stat.suffix}
+                </p>
 
-          <p className="text-sm text-muted-foreground">
-            Final Projected Value
-          </p>
+                {/* SUBTEXT */}
+                <p className="text-xs text-muted-foreground">
+                  {stat.sub}
+                </p>
 
-          <p className="mt-1 text-3xl font-bold">
+              </div>
 
-            MWK{" "}
-            {finalProjectedValue.toLocaleString()}
+            </CardContent>
+          </Card>
 
-          </p>
+        )
 
-        </CardContent>
-
-      </Card>
-
-      {/* TOTAL MONTHLY INCOME */}
-
-      <Card>
-
-        <CardContent className="p-6">
-
-          <p className="text-sm text-muted-foreground">
-            Total Monthly Income
-          </p>
-
-          <p className="mt-1 text-3xl font-bold">
-
-            MWK{" "}
-            {totalMonthlyIncome.toLocaleString()}
-
-          </p>
-
-        </CardContent>
-
-      </Card>
-
-      {/* LATEST RSI */}
-
-      <Card>
-
-        <CardContent className="p-6">
-
-          <p className="text-sm text-muted-foreground">
-            Latest RSI Score
-          </p>
-
-          <p className="mt-1 text-3xl font-bold">
-
-            {latestRsi.toFixed(1)}%
-
-          </p>
-
-        </CardContent>
-
-      </Card>
+      })}
 
     </div>
 

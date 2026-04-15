@@ -13,7 +13,6 @@ import RecommendationPanel from "@/components/sections/analytics/RecommendationP
 
 export default function AnalyticsPage() {
 
-  // 🔥 MOCK DATA (replace later with API)
   const simulations: AnalyticsData[] = [
     {
       id: "1",
@@ -56,11 +55,18 @@ export default function AnalyticsPage() {
     simulations.find((s) => s.id === selectedId) || null
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col gap-6 pt-12 lg:gap-8">
 
-      <h1 className="text-2xl font-bold">
-        Simulation Analytics
-      </h1>
+      {/* HEADER — MATCH DASHBOARD */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
+          Simulation Analytics
+        </h2>
+
+        <p className="mt-1 text-muted-foreground">
+          Analyze your simulations and compare different retirement strategies.
+        </p>
+      </div>
 
       {/* SELECT SIMULATION */}
       <SimulationSelector
@@ -71,7 +77,7 @@ export default function AnalyticsPage() {
 
       {!selectedSimulation ? (
         <p className="text-muted-foreground">
-          Select a simulation to begin analysis
+          Select a simulation to begin analysis.
         </p>
       ) : (
         <>
@@ -84,9 +90,7 @@ export default function AnalyticsPage() {
             <RsiAnalysis data={selectedSimulation} />
           </div>
 
-          <RecommendationPanel
-            data={selectedSimulation}
-          />
+          <RecommendationPanel data={selectedSimulation} />
         </>
       )}
 

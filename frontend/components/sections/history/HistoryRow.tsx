@@ -4,10 +4,7 @@ import {
 } from "@/components/ui/table"
 
 import { Badge } from "@/components/ui/badge"
-
-import {
-  HistorySimulation
-} from "./types"
+import { HistorySimulation } from "./types"
 
 export default function HistoryRow({
   simulation
@@ -22,27 +19,71 @@ export default function HistoryRow({
       .toISOString()
       .split("T")[0]
 
+  /* ===============================
+     INCOME TYPE LABEL
+  ================================ */
+
+  const getIncomeLabel = () => {
+    switch (simulation.incomeType) {
+      case "stable":
+        return "Stable"
+      case "flexible":
+        return "Flexible"
+      case "seasonal":
+        return "Seasonal"
+      default:
+        return "Unknown"
+    }
+  }
+
+  /* ===============================
+     RSI COLOR
+  ================================ */
+
+  const getRsiColor = () => {
+    if (!result?.rsiScore) return "text-muted-foreground"
+    if (result.rsiScore >= 70) return "text-primary"
+    if (result.rsiScore >= 40) return "text-amber-500"
+    return "text-destructive"
+  }
+
   return (
 
-    <TableRow>
+    <TableRow className="hover:bg-muted/40 transition">
 
-      <TableCell>
+      {/* DATE */}
+      <TableCell className="text-sm text-muted-foreground">
         {formattedDate}
       </TableCell>
 
+      {/* INCOME TYPE */}
       <TableCell>
+        <Badge variant="outline" className="text-xs">
+          {getIncomeLabel()}
+        </Badge>
+      </TableCell>
+
+      {/* MONTHLY INCOME */}
+      <TableCell className="text-right font-medium">
         MWK {simulation.monthlyIncome.toLocaleString()}
       </TableCell>
 
-      <TableCell>
-        MWK {result?.projectedValue?.toLocaleString() ?? "-"}
+      {/* PROJECTED VALUE */}
+      <TableCell className="text-right font-semibold">
+        {result?.projectedValue
+          ? `MWK ${result.projectedValue.toLocaleString()}`
+          : "-"}
       </TableCell>
 
-      <TableCell>
-        {result?.rsiScore?.toFixed(1) ?? "-"}%
+      {/* RSI */}
+      <TableCell className={`text-right font-semibold ${getRsiColor()}`}>
+        {result?.rsiScore
+          ? `${result.rsiScore.toFixed(1)}%`
+          : "-"}
       </TableCell>
 
-      <TableCell>
+      {/* STATUS */}
+      <TableCell className="text-right">
 
         <Badge
           variant={

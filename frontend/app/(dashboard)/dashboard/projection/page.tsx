@@ -2,182 +2,100 @@
 
 import { useState } from "react"
 
-import ProjectionForm,
-{
+import ProjectionForm, {
   ProjectionInputs
-}
-from "@/components/sections/projection/ProjectionForm"
+} from "@/components/sections/projection/ProjectionForm"
 
-import ProjectionResults,
-{
+import ProjectionResults, {
   ProjectionResult
-}
-from "@/components/sections/projection/ProjectionResults"
-
-
+} from "@/components/sections/projection/ProjectionResults"
 
 export default function SimulationPage() {
 
-  /* ===============================
-     INPUT STATE
-  ================================ */
-
-  const [inputs, setInputs] =
-    useState<ProjectionInputs>({
-
-      currentAge: "",
-      retirementAge: "",
-
-      monthlyContribution: "",
-      frequency: "monthly",
-
-      expectedReturn: "",
-      inflationRate: "",
-
-      includeVoluntary: false
-
-    })
-
-
-  /* ===============================
-     RESULTS STATE
-  ================================ */
+  const [inputs, setInputs] = useState<ProjectionInputs>({
+    currentAge: "",
+    retirementAge: "",
+    monthlyContribution: "",
+    frequency: "monthly",
+    expectedReturn: "",
+    inflationRate: "",
+    includeVoluntary: false
+  })
 
   const [results, setResults] =
-    useState<ProjectionResult | null>(
-      null
-    )
-
-
-  /* ===============================
-     CALCULATE
-  ================================ */
+    useState<ProjectionResult | null>(null)
 
   const handleCalculate = () => {
 
     const mockResults: ProjectionResult = {
-
       projectedSavings: 12500000,
-
       estimatedMonthlyIncome: 250000,
-
       inflationAdjustedValue: 8200000,
-
       rsiScore: 78
-
     }
 
     setResults(mockResults)
-
   }
 
-
-  /* ===============================
-     RESET
-  ================================ */
-
   const handleReset = () => {
-
     setInputs({
-
       currentAge: "",
       retirementAge: "",
-
       monthlyContribution: "",
       frequency: "monthly",
-
       expectedReturn: "",
       inflationRate: "",
-
       includeVoluntary: false
-
     })
 
     setResults(null)
-
   }
-
-
-  /* ===============================
-     SAVE
-  ================================ */
 
   const handleSaveSimulation = (
-
     data: ProjectionResult
-
   ) => {
-
     console.log("Saving:", data)
-
   }
-
-
-  /* ===============================
-     ADD SCENARIO
-  ================================ */
 
   const handleAddScenario = () => {
-
     console.log("Add Scenario clicked")
-
   }
-
-
-  /* ===============================
-     UI
-  ================================ */
 
   return (
 
-    <div className="p-6 pt-12 space-y-6">
+    <div className="flex flex-col gap-6 pt-12 lg:gap-8">
 
-      {/* PAGE TITLE */}
+      {/* HEADER (MATCH DASHBOARD) */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
+          Retirement Projection
+        </h2>
 
-      <h1 className="text-2xl font-bold">
+        <p className="mt-1 text-muted-foreground">
+          Simulate your pension growth and estimate your future income.
+        </p>
+      </div>
 
-        Retirement Simulation
-
-      </h1>
-
-
-      {/* TWO COLUMN LAYOUT */}
-
+      {/* CONTENT */}
       <div className="grid gap-6 lg:grid-cols-2">
 
-        {/* LEFT — FORM */}
-
-        <div className="p-6 border shadow-sm bg-card rounded-2xl">
-
+        {/* FORM */}
+        <div className="p-6 border bg-card rounded-2xl">
           <ProjectionForm
-
             inputs={inputs}
-
             setInputs={setInputs}
-
             onCalculate={handleCalculate}
-
             onReset={handleReset}
-
           />
-
         </div>
 
-
-        {/* RIGHT — RESULTS */}
-
-        <div className="p-6 border shadow-sm bg-card rounded-2xl">
-
+        {/* RESULTS */}
+        <div className="p-6 border bg-card rounded-2xl">
           <ProjectionResults
-
             results={results}
-
             onSave={handleSaveSimulation}
-
             onAddScenario={handleAddScenario}
-
           />
-
         </div>
 
       </div>
@@ -185,5 +103,4 @@ export default function SimulationPage() {
     </div>
 
   )
-
 }

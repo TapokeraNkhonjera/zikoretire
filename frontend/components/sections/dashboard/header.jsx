@@ -31,7 +31,7 @@ export default function Header() {
             Dashboard Overview
           </p>
           <h1 className="text-lg font-semibold text-foreground">
-            Notifications
+            Welcome back, {user?.name?.split(" ")[0] ?? "User"}!
           </h1>
         </div>
       </div>

@@ -24,7 +24,7 @@ export default function AdminClientLayout({
         <AdminSidebar />
         <AdminHeader />
 
-        <main className="pt-16 pl-[var(--sidebar-width,16rem)] p-6">
+        <main className="pt-16 pl-(--sidebar-width,16rem) p-6">
           {children}
         </main>
       </SidebarProvider>

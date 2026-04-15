@@ -41,7 +41,7 @@ export default function AdminHeader() {
           </p>
 
           <h1 className="text-lg font-semibold">
-            System Overview
+            Welcome back, {user?.name?.split(" ")[0] ?? "User"}!
           </h1>
         </div>
       </div>

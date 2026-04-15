@@ -18,38 +18,24 @@ export default function HistoryHeader({
 
   return (
 
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex justify-end gap-3">
 
-      <div>
+      <Button
+        variant="outline"
+        onClick={onPDF}
+        className="h-10"
+      >
+        <FileText className="w-4 h-4 mr-2" />
+        Download PDF
+      </Button>
 
-        <h2 className="text-2xl font-bold">
-          Simulation History
-        </h2>
-
-        <p className="text-muted-foreground">
-          View and export your retirement simulations
-        </p>
-
-      </div>
-
-      <div className="flex gap-3">
-
-        <Button
-          variant="outline"
-          onClick={onPDF}
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          Download PDF
-        </Button>
-
-        <Button
-          onClick={onCSV}
-        >
-          <FileSpreadsheet className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
-
-      </div>
+      <Button
+        onClick={onCSV}
+        className="h-10"
+      >
+        <FileSpreadsheet className="w-4 h-4 mr-2" />
+        Export CSV
+      </Button>
 
     </div>
 

@@ -9,7 +9,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
-          Welcome Back
+          Dashboard Overview
         </h2>
 
         <p className="mt-1 text-muted-foreground">

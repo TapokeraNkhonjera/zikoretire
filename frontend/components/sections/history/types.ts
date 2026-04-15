@@ -1,3 +1,8 @@
+export type IncomeType =
+  | "stable"
+  | "flexible"
+  | "seasonal"
+
 export interface HistoryResult {
   projectedValue: number
   rsiScore: number
@@ -6,7 +11,12 @@ export interface HistoryResult {
 
 export interface HistorySimulation {
   id: string
-  createdAt: Date   // IMPORTANT: keep Date only
+
+  createdAt: Date   // keep as Date (good call)
+
   monthlyIncome: number
+
+  incomeType: IncomeType   // ✅ NEW (used in table)
+
   result?: HistoryResult | null
 }
