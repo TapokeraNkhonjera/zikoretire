@@ -76,9 +76,43 @@ npm install
 Create a `.env` file in the `frontend` root:
 
 ```env
+# ================================
+# DATABASE CONFIG
+# ================================
+
 DATABASE_URL="mysql://root:@localhost:3306/zikoretire"
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
+
+DATABASE_USER="root"
+DATABASE_PASSWORD=""
+DATABASE_NAME="zikoretire"
+DATABASE_HOST="localhost"
+DATABASE_PORT=3306
+
+
+# ================================
+# NEXTAUTH CONFIG
+# ================================
+
+NEXTAUTH_SECRET=test_super_secret_key_123456789_secure
+NEXTAUTH_URL=http://localhost:3000
+
+
+# ================================
+# RESEND CONFIG
+# ================================
+
+# Replace with your actual Resend API key
+RESEND_API_KEY=re_V5YmPFAv_5P8oXnKBSGQDy5n6bXMCkQxE
+
+# Fake ZikoRetire email (works in Resend test mode)
+RESEND_FROM_EMAIL=ZikoRetire <onboarding@resend.dev>
+
+
+# ================================
+# APP URL
+# ================================
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 👉 Make sure:
