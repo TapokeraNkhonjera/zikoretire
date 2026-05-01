@@ -11,12 +11,16 @@ export interface HistoryResult {
 
 export interface HistorySimulation {
   id: string
-
-  createdAt: Date   // keep as Date (good call)
+  createdAt: string
 
   monthlyIncome: number
+  incomeType: string
 
-  incomeType: IncomeType   // ✅ NEW (used in table)
-
-  result?: HistoryResult | null
+  result: {
+    projectedValue: number
+    estimatedMonthlyIncome: number
+    inflationAdjustedValue: number
+    rsiScore: number
+    readinessLevel: string
+  } | null
 }

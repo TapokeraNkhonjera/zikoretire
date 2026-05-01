@@ -49,6 +49,10 @@ export default function HistoryTable({
               Status
             </TableHead>
 
+            <TableHead className="text-xs uppercase tracking-wide text-muted-foreground text-right">
+              <span className="sr-only">Actions</span>
+            </TableHead>
+
           </TableRow>
 
         </TableHeader>

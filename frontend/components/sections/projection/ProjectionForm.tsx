@@ -7,26 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Toggle } from "./toggle"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calculator, RotateCcw, ChevronDown } from "lucide-react"
+import InfoTooltip from "./infotooltip"
 
-/* =============================== TYPES ================================ */
-
-export interface ProjectionInputs {
-  currentAge: string
-  retirementAge: string
-  monthlyContribution: string
-
-  incomeType: "stable" | "flexible" | "seasonal"
-  savingBehavior: "consistent" | "flexible" | "opportunistic"
-
-  growthModel: "stable" | "balanced" | "high"
-
-  inflationRate: string
-
-  includeIrregular: boolean
-  extraContribution: string
-}
-
-/* =============================== COMPONENT ================================ */
+import { ProjectionInputs } from "@/types/ProjectionInputs"
 
 export default function ProjectionForm({
   inputs,
@@ -39,9 +22,11 @@ export default function ProjectionForm({
   onCalculate: () => void
   onReset: () => void
 }) {
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
-  /* =============================== SAFE UPDATE ================================ */
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  /* ================= SAFE UPDATE ================= */
 
   const updateField = <K extends keyof ProjectionInputs>(
     field: K,
@@ -53,71 +38,72 @@ export default function ProjectionForm({
     })
   }
 
-  /* =============================== PRESETS ================================ */
+  /* ================= VALIDATION ================= */
 
-  const applyPreset = (
-    type: "low" | "normal" | "high"
-  ) => {
-    const map: Record<
-      "low" | "normal" | "high",
-      {
-        contribution: string
-        model: ProjectionInputs["growthModel"]
-      }
-    > = {
-      low: {
-        contribution: "20000",
-        model: "stable",
-      },
-      normal: {
-        contribution: "50000",
-        model: "balanced",
-      },
-      high: {
-        contribution: "100000",
-        model: "high",
-      },
+  const validateInputs = () => {
+
+    if (!inputs.currentAge || !inputs.retirementAge) {
+      return "Please enter age details"
     }
 
-    const preset = map[type]
+    if (Number(inputs.retirementAge) <= Number(inputs.currentAge)) {
+      return "Retirement age must be greater than current age"
+    }
 
-    setInputs({
-      ...inputs,
-      monthlyContribution: preset.contribution,
-      growthModel: preset.model,
-    })
+    if (!inputs.monthlyIncome || Number(inputs.monthlyIncome) <= 0) {
+      return "Monthly income is required"
+    }
+
+    if (!inputs.monthlyContribution || Number(inputs.monthlyContribution) <= 0) {
+      return "Contribution must be greater than 0"
+    }
+
+    return null
   }
 
-  /* =============================== UI ================================ */
+  /* ================= HANDLE CALCULATE ================= */
+
+  const handleSubmit = () => {
+
+    const validationError = validateInputs()
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setError(null)
+
+    onCalculate()
+  }
+
+  /* ================= UI ================= */
 
   return (
     <div className="space-y-8">
 
-      {/* ================= PRESETS ================= */}
-      <div className="grid grid-cols-3 gap-2">
-        {(["low", "normal", "high"] as const).map((t) => (
-          <Button
-            key={t}
-            variant="outline"
-            size="sm"
-            onClick={() => applyPreset(t)}
-          >
-            {t.toUpperCase()}
-          </Button>
-        ))}
-      </div>
+      {/* ERROR */}
+      {error && (
+        <div className="p-3 text-sm border rounded-lg bg-destructive/10 text-destructive border-destructive/20">
+          {error}
+        </div>
+      )}
 
-      {/* ================= MODEL TABS ================= */}
+      {/* ================= MODEL ================= */}
       <div>
-        <Label className="block mb-2">Growth Model</Label>
+<div className="flex items-center mb-2">
+  <Label>Growth Model</Label>
+
+  <InfoTooltip
+    title="Growth Model"
+    description="Defines how your investments grow over time. Stable has lower risk and returns, balanced mixes growth and safety, while high aims for higher returns with more risk."
+  />
+</div>
 
         <Tabs
           value={inputs.growthModel}
           onValueChange={(val) =>
-            updateField(
-              "growthModel",
-              val as ProjectionInputs["growthModel"]
-            )
+            updateField("growthModel", val as ProjectionInputs["growthModel"])
           }
         >
           <TabsList className="grid w-full grid-cols-3">
@@ -126,25 +112,59 @@ export default function ProjectionForm({
             <TabsTrigger value="high">High</TabsTrigger>
           </TabsList>
         </Tabs>
+        <p className="mt-2 text-xs text-muted-foreground">
+  {inputs.growthModel === "stable" &&
+    "Lower risk, slower growth."}
+
+  {inputs.growthModel === "balanced" &&
+    "Balanced growth with moderate risk."}
+
+  {inputs.growthModel === "high" &&
+    "Higher potential returns with increased risk."}
+</p>
       </div>
 
       {/* ================= SLIDERS ================= */}
       <div className="space-y-6">
 
+        {/* Current Age */}
+        <div className="space-y-2">
+          <Label>Current Age</Label>
+
+          <input
+            type="range"
+            min={18}
+            max={65}
+            value={inputs.currentAge || 18}
+            onChange={(e) =>
+              updateField("currentAge", e.target.value)
+            }
+            className="w-full h-2 rounded-lg accent-primary bg-muted"
+          />
+
+          <Input
+            type="number"
+            value={inputs.currentAge}
+            onChange={(e) =>
+              updateField("currentAge", e.target.value)
+            }
+          />
+        </div>
+
         {/* Retirement Age */}
         <div className="space-y-2">
           <Label>Retirement Age</Label>
 
-<input
-  type="range"
-  min={40}
-  max={75}
-  value={inputs.retirementAge}
-  onChange={(e) =>
-    updateField("retirementAge", e.target.value)
-  }
-  className="w-full h-2 rounded-lg accent-primary bg-muted"
-/>
+          <input
+            type="range"
+            min={40}
+            max={75}
+            value={inputs.retirementAge || 60}
+            onChange={(e) =>
+              updateField("retirementAge", e.target.value)
+            }
+            className="w-full h-2 rounded-lg accent-primary bg-muted"
+          />
 
           <Input
             type="number"
@@ -159,17 +179,17 @@ export default function ProjectionForm({
         <div className="space-y-2">
           <Label>Monthly Contribution (MK)</Label>
 
-<input
-  type="range"
-  min={0}
-  max={200000}
-  step={1000}
-  value={inputs.monthlyContribution}
-  onChange={(e) =>
-    updateField("monthlyContribution", e.target.value)
-  }
-  className="w-full h-2 rounded-lg accent-primary bg-muted"
-/>
+          <input
+            type="range"
+            min={0}
+            max={200000}
+            step={1000}
+            value={inputs.monthlyContribution || 0}
+            onChange={(e) =>
+              updateField("monthlyContribution", e.target.value)
+            }
+            className="w-full h-2 rounded-lg accent-primary bg-muted"
+          />
 
           <Input
             type="number"
@@ -181,49 +201,85 @@ export default function ProjectionForm({
         </div>
       </div>
 
+      {/* ================= FINANCIAL BASE ================= */}
+      <div className="space-y-4">
+
+        <div className="space-y-2">
+          <Label>Monthly Income (MK)</Label>
+          <Input
+            type="number"
+            value={inputs.monthlyIncome}
+            onChange={(e) =>
+              updateField("monthlyIncome", e.target.value)
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Current Savings (MK)</Label>
+          <Input
+            type="number"
+            value={inputs.currentSavings}
+            onChange={(e) =>
+              updateField("currentSavings", e.target.value)
+            }
+          />
+        </div>
+
+      </div>
+
       {/* ================= INCOME TYPE ================= */}
-<div>
-  <Label className="block mb-2">Income Type</Label>
+      <div>
+<div className="flex items-center mb-2">
+  <Label>Income Type</Label>
 
-  <Tabs
-    value={inputs.incomeType}
-    onValueChange={(val) =>
-      updateField(
-        "incomeType",
-        val as ProjectionInputs["incomeType"]
-      )
-    }
-  >
-    <TabsList className="grid w-full grid-cols-3">
-      <TabsTrigger value="stable">Stable</TabsTrigger>
-      <TabsTrigger value="flexible">Flexible</TabsTrigger>
-      <TabsTrigger value="seasonal">Seasonal</TabsTrigger>
-    </TabsList>
-  </Tabs>
+  <InfoTooltip
+    title="Income Type"
+    description="Represents how predictable your income is. Stable income is consistent, flexible income varies slightly, and seasonal income fluctuates significantly."
+  />
 </div>
 
-      {/* ================= SAVING BEHAVIOR ================= */}
-<div>
-  <Label className="block mb-2">Saving Behavior</Label>
+        <Tabs
+          value={inputs.incomeType}
+          onValueChange={(val) =>
+            updateField("incomeType", val as ProjectionInputs["incomeType"])
+          }
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="stable">Stable</TabsTrigger>
+            <TabsTrigger value="flexible">Flexible</TabsTrigger>
+            <TabsTrigger value="seasonal">Seasonal</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+      </div>
 
-  <Tabs
-    value={inputs.savingBehavior}
-    onValueChange={(val) =>
-      updateField(
-        "savingBehavior",
-        val as ProjectionInputs["savingBehavior"]
-      )
-    }
-  >
-    <TabsList className="grid w-full grid-cols-3">
-      <TabsTrigger value="consistent">Consistent</TabsTrigger>
-      <TabsTrigger value="flexible">Flexible</TabsTrigger>
-      <TabsTrigger value="opportunistic">Opportunistic</TabsTrigger>
-    </TabsList>
-  </Tabs>
+      {/* ================= SAVING ================= */}
+      <div>
+<div className="flex items-center mb-2">
+  <Label>Saving Behavior</Label>
+
+  <InfoTooltip
+    title="Saving Behavior"
+    description="Describes how consistently you save. Consistent means regular contributions, flexible varies over time, and opportunistic increases when possible."
+  />
 </div>
 
-      {/* ================= TOGGLE ================= */}
+        <Tabs
+          value={inputs.savingBehavior}
+          onValueChange={(val) =>
+            updateField("savingBehavior", val as ProjectionInputs["savingBehavior"])
+          }
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="consistent">Consistent</TabsTrigger>
+            <TabsTrigger value="flexible">Flexible</TabsTrigger>
+            <TabsTrigger value="opportunistic">Opportunistic</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* ================= IRREGULAR ================= */}
       <div className="flex items-center justify-between">
         <Label>Irregular Contributions</Label>
 
@@ -248,6 +304,7 @@ export default function ProjectionForm({
       {/* ================= ADVANCED ================= */}
       <div>
         <button
+          type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center gap-2 text-sm text-muted-foreground"
         >
@@ -270,7 +327,7 @@ export default function ProjectionForm({
 
       {/* ================= ACTIONS ================= */}
       <div className="flex gap-3">
-        <Button onClick={onCalculate} className="flex-1 h-12 gap-2">
+        <Button onClick={handleSubmit} className="flex-1 h-12 gap-2">
           <Calculator className="w-5 h-5" />
           Run Projection
         </Button>
@@ -283,6 +340,7 @@ export default function ProjectionForm({
           <RotateCcw className="w-5 h-5" />
         </Button>
       </div>
+
     </div>
   )
 }

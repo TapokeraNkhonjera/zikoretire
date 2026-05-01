@@ -12,25 +12,72 @@ import {
   Brain,
   Activity,
   FileDown,
-  TrendingUp,
   ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+/* ================================
+   MOCK DATA
+================================ */
+
+const simulationData = [
+  { day: "Mon", simulations: 40 },
+  { day: "Tue", simulations: 55 },
+  { day: "Wed", simulations: 70 },
+  { day: "Thu", simulations: 62 },
+  { day: "Fri", simulations: 85 },
+];
+
+const accuracyData = [
+  { month: "Jan", accuracy: 90 },
+  { month: "Feb", accuracy: 92 },
+  { month: "Mar", accuracy: 94 },
+  { month: "Apr", accuracy: 95 },
+];
+
+const projectionDistribution = [
+  { name: "Low", value: 30 },
+  { name: "Medium", value: 50 },
+  { name: "High", value: 20 },
+];
+
+/* Brand Shades */
+
+const pieColors = [
+  "#1e3a8a", // dark blue
+  "#3b82f6", // blue
+  "#93c5fd", // light blue
+];
+
 export default function ReportsOverview() {
 
   return (
 
-    <div className="space-y-8 pt-8 pl-8">
+    <div className="space-y-8 pt-8 pl-8 pr-6 w-full max-w-[1800px]">
 
-      {/* ======================================
+      {/* ===============================
          PAGE TITLE
-      ====================================== */}
+      =============================== */}
 
       <div>
 
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="text-2xl font-semibold">
 
           System Reports
 
@@ -38,21 +85,17 @@ export default function ReportsOverview() {
 
         <p className="text-sm text-muted-foreground">
 
-          Monitor simulations, ML projections, and system performance.
+          Monitor simulations, ML projections, and prediction accuracy.
 
         </p>
 
       </div>
 
-
-
-      {/* ======================================
-         SYSTEM PERFORMANCE SUMMARY
-      ====================================== */}
+      {/* ===============================
+         METRIC CARDS
+      =============================== */}
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-
-        {/* TOTAL SIMULATIONS */}
 
         <Card>
 
@@ -86,10 +129,6 @@ export default function ReportsOverview() {
 
         </Card>
 
-
-
-        {/* DAILY SIMULATIONS */}
-
         <Card>
 
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -122,10 +161,6 @@ export default function ReportsOverview() {
 
         </Card>
 
-
-
-        {/* ML STATUS */}
-
         <Card>
 
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -136,13 +171,13 @@ export default function ReportsOverview() {
 
             </CardTitle>
 
-            <Brain className="w-4 h-4 text-green-600" />
+            <Brain className="w-4 h-4 text-blue-600" />
 
           </CardHeader>
 
           <CardContent>
 
-            <div className="text-lg font-semibold text-green-600">
+            <div className="text-lg font-semibold text-blue-600">
 
               Operational
 
@@ -158,10 +193,6 @@ export default function ReportsOverview() {
 
         </Card>
 
-
-
-        {/* SYSTEM HEALTH */}
-
         <Card>
 
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -172,7 +203,7 @@ export default function ReportsOverview() {
 
             </CardTitle>
 
-            <ShieldCheck className="w-4 h-4 text-primary" />
+            <ShieldCheck className="w-4 h-4 text-black" />
 
           </CardHeader>
 
@@ -196,101 +227,52 @@ export default function ReportsOverview() {
 
       </div>
 
+      {/* ===============================
+         CHART SECTION
+      =============================== */}
 
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
 
-      {/* ======================================
-         PROJECTION SUMMARY
-      ====================================== */}
+        {/* DAILY SIMULATIONS */}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-
-        {/* PROJECTION PERFORMANCE */}
-
-        <Card>
+        <Card className="xl:col-span-2">
 
           <CardHeader>
 
             <CardTitle>
 
-              Projection Performance
+              Daily Simulations
 
             </CardTitle>
 
           </CardHeader>
 
-          <CardContent className="space-y-4 text-sm">
+          <CardContent className="h-[300px]">
 
-            <div className="flex justify-between">
+            <ResponsiveContainer width="100%" height="100%">
 
-              <span className="text-muted-foreground">
+              <BarChart data={simulationData}>
 
-                Average Projection Value
+                <XAxis dataKey="day" />
 
-              </span>
+                <YAxis />
 
-              <span className="font-medium">
+                <Tooltip />
 
-                MWK 4,200,000
+                <Bar
+                  dataKey="simulations"
+                  fill="#3b82f6"
+                />
 
-              </span>
+              </BarChart>
 
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-muted-foreground">
-
-                Highest Projection
-
-              </span>
-
-              <span className="font-medium">
-
-                MWK 12,500,000
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-muted-foreground">
-
-                Lowest Projection
-
-              </span>
-
-              <span className="font-medium">
-
-                MWK 650,000
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-muted-foreground">
-
-                Average Confidence Score
-
-              </span>
-
-              <span className="font-medium">
-
-                92%
-
-              </span>
-
-            </div>
+            </ResponsiveContainer>
 
           </CardContent>
 
         </Card>
 
-
-
-        {/* ACCURACY SUMMARY */}
+        {/* PROJECTION DISTRIBUTION */}
 
         <Card>
 
@@ -298,77 +280,85 @@ export default function ReportsOverview() {
 
             <CardTitle>
 
-              Prediction Accuracy
+              Projection Distribution
 
             </CardTitle>
 
           </CardHeader>
 
-          <CardContent className="space-y-4 text-sm">
+          <CardContent className="h-[300px]">
 
-            <div className="flex justify-between">
+            <ResponsiveContainer width="100%" height="100%">
 
-              <span className="text-muted-foreground">
+              <PieChart>
 
-                Model Accuracy Rate
+                <Pie
+                  data={projectionDistribution}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
 
-              </span>
+                  {projectionDistribution.map((entry, index) => (
 
-              <span className="font-medium text-green-600">
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={pieColors[index]}
+                    />
 
-                94.6%
+                  ))}
 
-              </span>
+                </Pie>
 
-            </div>
+                <Tooltip />
 
-            <div className="flex justify-between">
+              </PieChart>
 
-              <span className="text-muted-foreground">
+            </ResponsiveContainer>
 
-                Failed Predictions
+          </CardContent>
 
-              </span>
+        </Card>
 
-              <span className="font-medium">
+        {/* ACCURACY TREND */}
 
-                3
+        <Card className="xl:col-span-3">
 
-              </span>
+          <CardHeader>
 
-            </div>
+            <CardTitle>
 
-            <div className="flex justify-between">
+              Prediction Accuracy Trend
 
-              <span className="text-muted-foreground">
+            </CardTitle>
 
-                Retrained Models
+          </CardHeader>
 
-              </span>
+          <CardContent className="h-[300px]">
 
-              <span className="font-medium">
+            <ResponsiveContainer width="100%" height="100%">
 
-                2
+              <LineChart data={accuracyData}>
 
-              </span>
+                <CartesianGrid strokeDasharray="3 3" />
 
-            </div>
+                <XAxis dataKey="month" />
 
-            <div className="flex justify-between">
+                <YAxis />
 
-              <span className="text-muted-foreground">
+                <Tooltip />
 
-                Last Model Update
+                <Line
+                  type="monotone"
+                  dataKey="accuracy"
+                  stroke="#1e3a8a"
+                  strokeWidth={3}
+                />
 
-              </span>
+              </LineChart>
 
-              <span className="font-medium">
-
-                3 days ago
-
-              </span>
-
-            </div>
+            </ResponsiveContainer>
 
           </CardContent>
 
@@ -376,11 +366,9 @@ export default function ReportsOverview() {
 
       </div>
 
-
-
-      {/* ======================================
-         DOWNLOAD REPORTS
-      ====================================== */}
+      {/* ===============================
+         EXPORT REPORTS
+      =============================== */}
 
       <Card>
 
@@ -396,7 +384,7 @@ export default function ReportsOverview() {
 
         <CardContent className="flex flex-wrap gap-4">
 
-          <Button className="flex items-center gap-2">
+          <Button className="flex gap-2">
 
             <FileDown className="w-4 h-4" />
 
@@ -404,7 +392,10 @@ export default function ReportsOverview() {
 
           </Button>
 
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="flex gap-2"
+          >
 
             <FileDown className="w-4 h-4" />
 
@@ -412,7 +403,10 @@ export default function ReportsOverview() {
 
           </Button>
 
-          <Button variant="secondary" className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            className="flex gap-2"
+          >
 
             <FileDown className="w-4 h-4" />
 

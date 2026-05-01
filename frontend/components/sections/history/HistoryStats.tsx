@@ -20,21 +20,46 @@ export default function HistoryStats({
   simulations: HistorySimulation[]
 }) {
 
+  /* ================= SAFE GUARDS ================= */
+
   const totalSimulations = simulations.length
 
-  const finalProjectedValue =
-    simulations[simulations.length - 1]?.result?.projectedValue ?? 0
+  const latestSimulation = simulations[0] || null
 
-  const totalMonthlyIncome =
-    simulations.reduce(
-      (sum, sim) => sum + sim.monthlyIncome,
-      0
-    )
+  /* ================= CORE METRICS ================= */
+
+  const finalProjectedValue =
+    latestSimulation?.result?.projectedValue ?? 0
 
   const latestRsi =
-    simulations[simulations.length - 1]?.result?.rsiScore ?? 0
+    latestSimulation?.result?.rsiScore ?? 0
 
-  /* RSI STATE */
+  /* ================= ANALYTICS ================= */
+
+  const avgProjectedValue =
+    totalSimulations > 0
+      ? simulations.reduce(
+          (sum, sim) =>
+            sum + (sim.result?.projectedValue ?? 0),
+          0
+        ) / totalSimulations
+      : 0
+
+  const trendValue =
+    totalSimulations >= 2
+      ? (simulations[0].result?.projectedValue ?? 0) -
+        (simulations[1].result?.projectedValue ?? 0)
+      : 0
+
+  const trendLabel =
+    trendValue > 0
+      ? "Improving"
+      : trendValue < 0
+      ? "Declining"
+      : "No Change"
+
+  /* ================= RSI STATE ================= */
+
   const getRsiState = () => {
     if (latestRsi >= 70) return "Healthy"
     if (latestRsi >= 40) return "Moderate"
@@ -47,12 +72,13 @@ export default function HistoryStats({
     return "text-destructive"
   }
 
+  /* ================= CARDS ================= */
+
   const stats = [
     {
       label: "Total Simulations",
       value: totalSimulations,
       icon: Layers,
-      suffix: "",
       sub: "All recorded projections"
     },
     {
@@ -63,11 +89,11 @@ export default function HistoryStats({
       sub: "Latest simulation outcome"
     },
     {
-      label: "Monthly Income",
-      value: totalMonthlyIncome,
+      label: "Average Projection",
+      value: avgProjectedValue,
       icon: Wallet,
       prefix: "MWK",
-      sub: "Combined expected income"
+      sub: "Across all simulations"
     },
     {
       label: "RSI Score",
@@ -78,6 +104,8 @@ export default function HistoryStats({
       highlight: true
     }
   ]
+
+  /* ================= UI ================= */
 
   return (
 
@@ -91,7 +119,7 @@ export default function HistoryStats({
 
           <Card
             key={i}
-            className="border border-border/60 bg-card hover:border-border transition"
+            className="transition border border-border/60 bg-card hover:border-border"
           >
             <CardContent className="p-5">
 
@@ -102,7 +130,7 @@ export default function HistoryStats({
                   {stat.label}
                 </p>
 
-                <div className="flex items-center justify-center w-9 h-9 border rounded-md bg-muted/40 border-border/60">
+                <div className="flex items-center justify-center border rounded-md w-9 h-9 bg-muted/40 border-border/60">
                   <Icon className="w-4 h-4 text-muted-foreground" />
                 </div>
 
@@ -116,11 +144,11 @@ export default function HistoryStats({
                     stat.highlight ? getRsiColor() : "text-foreground"
                   }`}
                 >
-                  {stat.prefix && `${stat.prefix} `}
+                  {"prefix" in stat && stat.prefix && `${stat.prefix} `}
                   {typeof stat.value === "number"
                     ? stat.value.toLocaleString()
                     : stat.value}
-                  {stat.suffix}
+                  {"suffix" in stat && stat.suffix}
                 </p>
 
                 {/* SUBTEXT */}

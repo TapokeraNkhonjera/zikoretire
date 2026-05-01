@@ -1,77 +1,162 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Wallet, TrendingUp, Banknote, Gauge } from "lucide-react"
+import {
+  Wallet,
+  TrendingUp,
+  Banknote,
+  Gauge,
+  LucideIcon
+} from "lucide-react"
 
-const stats = [
-  {
-    title: "Total Contributions",
-    value: "MK 2,450,000",
-    change: "+12.5%",
-    changeType: "positive" as const,
-    icon: Wallet,
-    description: "Lifetime contributions",
-  },
-  {
-    title: "Projected Retirement Fund",
-    value: "MK 8,750,000",
-    change: "+8.2%",
-    changeType: "positive" as const,
-    icon: TrendingUp,
-    description: "At age 60",
-  },
-  {
-    title: "Estimated Monthly Pension",
-    value: "MK 72,917",
-    change: "+5.1%",
-    changeType: "positive" as const,
-    icon: Banknote,
-    description: "Post-retirement income",
-  },
-{
-  title: "Retirement Sustainability Index",
-  value: "78%",
-  change: "Good",
-  changeType: "positive" as const,
-  icon: Gauge,
-  description: "RSI Score",
+import { DashboardStatsData } from "@/types/dashboard"
+
+type StatItem = {
+  title: string
+  value: string
+  description: string
+  progress: number
+  icon: LucideIcon
+  highlight?: boolean
 }
-]
 
-export function DashboardStats() {
+export function DashboardStats({
+  stats,
+}: {
+  stats: DashboardStatsData
+}) {
+  const [animate, setAnimate] = useState(false)
+
+  // ✅ trigger AFTER first paint (no React warning)
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(true), 50)
+    return () => clearTimeout(t)
+  }, [])
+
+  const getRsiColor = () => {
+    if (stats.rsi >= 70) return "text-primary"
+    if (stats.rsi >= 40) return "text-amber-500"
+    return "text-destructive"
+  }
+
+  const getRsiBarColor = () => {
+    if (stats.rsi >= 70) return "bg-primary"
+    if (stats.rsi >= 40) return "bg-amber-500"
+    return "bg-destructive"
+  }
+
+  const items: StatItem[] = [
+    {
+      title: "Total Contributions",
+      value: `MWK ${stats.totalContributions.toLocaleString()}`,
+      description: "Lifetime contributions",
+      progress: 75,
+      icon: Wallet,
+    },
+    {
+      title: "Projected Fund",
+      value: `MWK ${stats.projectedFund.toLocaleString()}`,
+      description: "At retirement",
+      progress: 82,
+      icon: TrendingUp,
+    },
+    {
+      title: "Monthly Pension",
+      value: `MWK ${stats.monthlyIncome.toLocaleString()}`,
+      description: "Estimated income",
+      progress: 68,
+      icon: Banknote,
+    },
+    {
+      title: "RSI Score",
+      value: `${stats.rsi.toFixed(1)}%`,
+      description:
+        stats.rsi >= 70
+          ? "Healthy"
+          : stats.rsi >= 40
+          ? "Moderate"
+          : "At Risk",
+      progress: stats.rsi,
+      icon: Gauge,
+      highlight: true,
+    },
+  ]
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <Card key={stat.title} className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
-                <div className="w-full h-2 mt-3 rounded-full bg-muted">
-  <div
-    className="h-2 rounded-full bg-primary"
-    style={{ width: "78%" }}
-  />
-</div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                      stat.changeType === "positive"
-                        ? "bg-secondary/10 text-secondary"
-                        : "bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    {stat.change}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{stat.description}</span>
+      {items.map((stat, index) => {
+        const Icon = stat.icon
+
+        return (
+          <Card
+            key={stat.title}
+            className={`
+              border border-border/60 bg-card
+              transition-all duration-300 ease-out
+
+              hover:border-primary/40
+              hover:shadow-sm
+              hover:-translate-y-1
+
+              animate-in fade-in slide-in-from-bottom-2
+            `}
+            style={{
+              animationDelay: `${index * 80}ms`,
+              animationFillMode: "both",
+            }}
+          >
+            <CardContent className="p-5">
+
+              {/* TOP ROW */}
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-medium tracking-wide text-muted-foreground">
+                  {stat.title}
+                </p>
+
+                <div className="flex items-center justify-center border rounded-md w-9 h-9 bg-muted/40 border-border/60">
+                  <Icon className="w-4 h-4 text-primary" />
                 </div>
               </div>
-              <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-xl bg-primary/10">
-                <stat.icon className="w-6 h-6 text-primary" />
+
+              {/* VALUE */}
+              <div className="space-y-3">
+                <p
+                  className={`text-2xl font-semibold tracking-tight ${
+                    stat.highlight
+                      ? getRsiColor()
+                      : "text-foreground"
+                  }`}
+                >
+                  {stat.value}
+                </p>
+
+                {/* PROGRESS BAR */}
+                <div className="w-full h-2 overflow-hidden rounded-full bg-muted/70">
+                  <div
+                    className={`
+                      h-full rounded-full
+                      transition-all duration-1000 ease-out
+                      ${stat.highlight
+                        ? getRsiBarColor()
+                        : "bg-primary"}
+                    `}
+                    style={{
+                      width: animate ? `${stat.progress}%` : "0%",
+                    }}
+                  />
+                </div>
+
+                {/* SUBTEXT */}
+                <p className="text-xs text-muted-foreground">
+                  {stat.description}
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

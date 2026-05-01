@@ -26,11 +26,21 @@ import {
    TYPES
 ================================ */
 
+export interface ProjectionMeta {
+  growthModel: string
+  incomeType: string
+  savingBehavior: string
+  annualReturnRate: number
+  adjustedContribution: number
+  engine: string
+}
+
 export interface ProjectionResult {
   projectedSavings: number
   estimatedMonthlyIncome: number
   inflationAdjustedValue: number
   rsiScore: number
+  meta?: ProjectionMeta
 }
 
 /* ===============================
@@ -39,173 +49,257 @@ export interface ProjectionResult {
 
 export default function ProjectionResults({
   results,
+  isDirty,
   onSave,
-  onAddScenario
+  onAddScenario,
+  saveLabel = "Save Simulation"
 }: {
   results: ProjectionResult | null
-  onSave: (data: ProjectionResult) => void
+  isDirty?: boolean
+  onSave: (data: ProjectionResult) => void | Promise<void>
   onAddScenario: () => void
+  saveLabel?: string
 }) {
 
-  if (!results) {
-    return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Run a simulation to view results
-      </div>
-    )
-  }
+  const isEmpty = !results
 
   /* ===============================
-     CHART DATA
+     CHART DATA (SAFE)
   ================================= */
 
-  const chartData = [
-    {
-      name: "Projection",
-      Savings: results.projectedSavings,
-      Income: results.estimatedMonthlyIncome * 100,
-      Inflation: results.inflationAdjustedValue
-    }
-  ]
+  const chartData = results
+    ? [
+        {
+          name: "Projection",
+          Savings: results.projectedSavings,
+          AnnualIncome: results.estimatedMonthlyIncome * 12,
+          InflationAdjusted: results.inflationAdjustedValue
+        }
+      ]
+    : []
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-[900px] mx-auto space-y-6">
 
-      {/* ================= RESULT CARDS ================= */}
-      <div className="grid gap-4 sm:grid-cols-2">
-
-        <ResultCard
-          icon={<Wallet className="w-5 h-5 text-primary" />}
-          label="Projected Savings"
-          value={`MK ${results.projectedSavings.toLocaleString()}`}
-        />
-
-        <ResultCard
-          icon={<Banknote className="w-5 h-5 text-primary" />}
-          label="Monthly Income"
-          value={`MK ${results.estimatedMonthlyIncome.toLocaleString()}`}
-        />
-
-        <ResultCard
-          icon={<TrendingDown className="w-5 h-5 text-primary" />}
-          label="Inflation Adjusted"
-          value={`MK ${results.inflationAdjustedValue.toLocaleString()}`}
-        />
-
-        <ResultCard
-          icon={<Gauge className="w-5 h-5 text-primary" />}
-          label="RSI Score"
-          value={`${results.rsiScore}%`}
-        />
-
-      </div>
-
-      {/* ================= RSI BAR ================= */}
-      <RsiBar score={results.rsiScore} />
-
-      {/* ================= CHART ================= */}
-      <div className="p-4 border rounded-xl bg-card">
-
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-foreground">
-            Projection Overview
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Savings vs income vs inflation impact
-          </p>
+      {/* ================= EMPTY STATE ================= */}
+      {isEmpty ? (
+        <div className="flex items-center justify-center h-64 text-sm border border-dashed text-muted-foreground rounded-xl">
+          Run a simulation to view results
         </div>
+      ) : (
+        <>
 
-        <div className="h-[260px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+          {/* ================= WARNING ================= */}
+          {isDirty && (
+            <div className="p-3 text-sm border rounded-md bg-amber-500/10 text-amber-500 border-amber-500/20">
+              ⚠️ Inputs have changed. Recalculate to see updated results.
+            </div>
+          )}
 
-              <CartesianGrid
-                strokeDasharray="3 3"
-                className="stroke-border"
-              />
+          {/* ================= RESULT CARDS ================= */}
+          <div className="grid gap-4 sm:grid-cols-2">
 
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                axisLine={false}
-                className="text-xs fill-muted-foreground"
-              />
+            <ResultCard
+              icon={<Wallet className="w-5 h-5 text-primary" />}
+              label="Projected Savings"
+              value={`MWK ${results.projectedSavings.toLocaleString()}`}
+            />
 
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                className="text-xs fill-muted-foreground"
-                tickFormatter={(value) =>
-                  `${(value / 1000000).toFixed(1)}M`
-                }
-              />
+            <ResultCard
+              icon={<Banknote className="w-5 h-5 text-muted-foreground" />}
+              label="Monthly Income"
+              value={`MWK ${results.estimatedMonthlyIncome.toLocaleString()}`}
+            />
 
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "oklch(1 0 0)",
-                  border: "1px solid oklch(0.9 0 0)",
-                  borderRadius: "12px"
-                }}
-                formatter={(value: unknown, name: string) => {
-                  let safeValue = 0
+            <ResultCard
+              icon={<TrendingDown className="w-5 h-5 text-muted-foreground" />}
+              label="Inflation Adjusted"
+              value={`MWK ${results.inflationAdjustedValue.toLocaleString()}`}
+            />
 
-                  if (typeof value === "number") {
-                    safeValue = value
-                  } else if (typeof value === "string") {
-                    safeValue = Number(value)
-                  } else if (Array.isArray(value)) {
-                    safeValue = Number(value[0] ?? 0)
-                  }
+            <ResultCard
+              icon={<Gauge className="w-5 h-5 text-muted-foreground" />}
+              label="RSI Score"
+              value={`${results.rsiScore.toFixed(1)}%`}
+            />
 
-                  return [`MK ${safeValue.toLocaleString()}`, name]
-                }}
-              />
+          </div>
 
-              <Legend />
+          {/* ================= RSI BAR ================= */}
+          <RsiBar score={results.rsiScore} />
 
-              {/* 🔵 BRAND COLORS */}
-              <Bar
-                dataKey="Savings"
-                fill="oklch(0.45 0.25 264)"
-                radius={[6, 6, 0, 0]}
-              />
+          {/* ================= META ================= */}
+          {results.meta && (
+            <div className="p-4 space-y-3 border rounded-xl bg-muted/30">
 
-              <Bar
-                dataKey="Income"
-                fill="oklch(0.55 0.15 264)"
-                radius={[6, 6, 0, 0]}
-              />
+              <p className="text-sm font-semibold text-foreground">
+                Strategy Breakdown
+              </p>
 
-              <Bar
-                dataKey="Inflation"
-                fill="oklch(0.35 0.1 264)"
-                radius={[6, 6, 0, 0]}
-              />
+              <div className="grid grid-cols-2 gap-3 text-sm">
 
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+                <div>
+                  <span className="text-muted-foreground">Growth Model:</span>
+                  <p className="font-medium capitalize">
+                    {results.meta.growthModel}
+                  </p>
+                </div>
 
-      {/* ================= ACTION BUTTONS ================= */}
-      <div className="flex gap-3 pt-2">
+                <div>
+                  <span className="text-muted-foreground">Income Type:</span>
+                  <p className="font-medium capitalize">
+                    {results.meta.incomeType}
+                  </p>
+                </div>
 
-        <Button
-          className="flex-1 h-11"
-          onClick={() => onSave(results)}
-        >
-          Save Simulation
-        </Button>
+                <div>
+                  <span className="text-muted-foreground">Saving Behavior:</span>
+                  <p className="font-medium capitalize">
+                    {results.meta.savingBehavior}
+                  </p>
+                </div>
 
-        <Button
-          variant="outline"
-          onClick={onAddScenario}
-          className="h-11"
-        >
-          Add Scenario
-        </Button>
+                <div>
+                  <span className="text-muted-foreground">Return Rate:</span>
+                  <p className="font-medium">
+                    {(results.meta.annualReturnRate * 100).toFixed(1)}%
+                  </p>
+                </div>
 
-      </div>
+                <div>
+                  <span className="text-muted-foreground">Adjusted Contribution:</span>
+                  <p className="font-medium">
+                    MWK {results.meta.adjustedContribution.toLocaleString()}
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ================= INSIGHTS ================= */}
+          {results.meta && (
+            <div className="text-xs text-muted-foreground">
+
+              {results.meta.growthModel === "high" &&
+                "Higher growth model increases potential returns but comes with more variability."}
+
+              {results.meta.growthModel === "stable" &&
+                "Stable growth prioritizes consistency over aggressive returns."}
+
+              {results.meta.incomeType === "seasonal" &&
+                "Seasonal income reduces projection confidence due to irregular cash flow."}
+
+              {results.meta.savingBehavior === "opportunistic" &&
+                "Opportunistic saving boosts long-term growth when extra funds are available."}
+
+            </div>
+          )}
+
+          {/* ================= CHART ================= */}
+          <div className="p-5 border border-border/60 rounded-xl bg-card">
+
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-foreground">
+                Projection Overview
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Savings vs annual income vs inflation impact
+              </p>
+            </div>
+
+            <div className="w-full min-h-[260px]">
+              <ResponsiveContainer width="100%" height={260}>
+
+                <BarChart data={chartData}>
+
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-border"
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    className="text-xs fill-muted-foreground"
+                  />
+
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    className="text-xs fill-muted-foreground"
+                    tickFormatter={(value: number) =>
+                      `${(value / 1000000).toFixed(1)}M`
+                    }
+                  />
+
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "oklch(1 0 0)",
+                      border: "1px solid oklch(0.9 0 0)",
+                      borderRadius: "12px"
+                    }}
+                    formatter={(value: unknown) => {
+                      const safeValue =
+                        typeof value === "number"
+                          ? value
+                          : Number(value ?? 0)
+
+                      return [`MWK ${safeValue.toLocaleString()}`, ""]
+                    }}
+                  />
+
+                  <Legend />
+
+                  <Bar
+                    dataKey="Savings"
+                    fill="oklch(0.45 0.25 264)"
+                    radius={[6, 6, 0, 0]}
+                  />
+
+                  <Bar
+                    dataKey="AnnualIncome"
+                    fill="oklch(0.55 0.15 264)"
+                    radius={[6, 6, 0, 0]}
+                  />
+
+                  <Bar
+                    dataKey="InflationAdjusted"
+                    fill="oklch(0.35 0.1 264)"
+                    radius={[6, 6, 0, 0]}
+                  />
+
+                </BarChart>
+
+              </ResponsiveContainer>
+            </div>
+
+          </div>
+
+          {/* ================= ACTION BUTTONS ================= */}
+          <div className="flex gap-3 pt-2">
+
+            <Button
+              className="flex-1 h-11"
+              onClick={() => onSave(results)}
+            >
+              {saveLabel}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={onAddScenario}
+              className="h-11"
+            >
+              Add Scenario
+            </Button>
+
+          </div>
+
+        </>
+      )}
 
     </div>
   )

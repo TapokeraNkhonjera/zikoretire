@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 import { AnalyticsData } from "@/types/analytics"
 
@@ -13,51 +15,136 @@ import RecommendationPanel from "@/components/sections/analytics/RecommendationP
 
 export default function AnalyticsPage() {
 
-  const simulations: AnalyticsData[] = [
-    {
-      id: "1",
-      name: "Base Plan",
-      result: {
-        projectedValue: 15000000,
-        monthlyRetirementIncome: 250000,
-        rsiScore: 68,
-      },
-      scenarios: [
-        {
-          name: "Aggressive",
-          result: {
-            projectedValue: 22000000,
-            monthlyRetirementIncome: 320000,
-            rsiScore: 82,
-          },
-        },
-        {
-          name: "Conservative",
-          result: {
-            projectedValue: 11000000,
-            monthlyRetirementIncome: 180000,
-            rsiScore: 55,
-          },
-        },
-      ],
-      recommendations: [
-        {
-          message: "Increase contributions by 10%",
-          type: "improvement",
-        },
-      ],
-    },
-  ]
+  const { data: session } = useSession()
+  const userId = session?.user?.id
 
+  const searchParams = useSearchParams()
+  const preselectedId = searchParams.get("simulationId") || ""
+
+  const [simulations, setSimulations] = useState<AnalyticsData[]>([])
   const [selectedId, setSelectedId] = useState<string>("")
+  const [loading, setLoading] = useState(true)
 
-  const selectedSimulation =
-    simulations.find((s) => s.id === selectedId) || null
+  /* ================= FETCH REAL DATA ================= */
+
+  useEffect(() => {
+
+    if (!userId) return
+
+    const fetchData = async () => {
+
+      try {
+
+        const res = await fetch(
+          `/api/simulation/history?userId=${userId}`
+        )
+
+        const data = await res.json()
+
+        if (!data.success) return
+
+        /* ================= MAP HISTORY → ANALYTICS ================= */
+
+        const mapped: AnalyticsData[] = data.data.map((sim: {
+          id: string
+          createdAt: string
+          result: {
+            projectedValue?: number
+            estimatedMonthlyIncome?: number
+            rsiScore?: number
+          } | null
+          scenarios?: {
+            id: string
+            name: string
+            result?: {
+              projectedValue?: number
+              estimatedMonthlyIncome?: number
+              rsiScore?: number
+            } | null
+          }[]
+          recommendations?: {
+            message: string
+            type: string
+          }[]
+        }) => ({
+
+          id: sim.id,
+
+          name: `Simulation ${sim.id.slice(-4)}`,
+
+          result: {
+            projectedValue:
+              sim.result?.projectedValue ?? 0,
+
+            monthlyRetirementIncome:
+              sim.result?.estimatedMonthlyIncome ?? 0,
+
+            rsiScore:
+              sim.result?.rsiScore ?? 0
+          },
+
+          scenarios: (sim.scenarios ?? []).map((s) => ({
+            name: s.name,
+            result: {
+              projectedValue:
+                s.result?.projectedValue ?? 0,
+
+              monthlyRetirementIncome:
+                s.result?.estimatedMonthlyIncome ?? 0,
+
+              rsiScore:
+                s.result?.rsiScore ?? 0
+            }
+          })),
+
+          recommendations:
+            sim.recommendations ?? []
+
+        }))
+
+        setSimulations(mapped)
+
+      } catch (err) {
+
+        console.error("Analytics fetch error:", err)
+
+      } finally {
+
+        setLoading(false)
+
+      }
+
+    }
+
+    fetchData()
+
+  }, [userId])
+
+  /* ================= AUTO SELECT FROM HISTORY ================= */
+
+  useEffect(() => {
+
+    if (preselectedId) {
+      setSelectedId(preselectedId)
+    }
+
+  }, [preselectedId])
+
+  /* ================= SELECTED SIM ================= */
+
+  const selectedSimulation = useMemo(
+    () =>
+      simulations.find((s) => s.id === selectedId) || null,
+    [selectedId, simulations]
+  )
+
+  /* ================= UI ================= */
 
   return (
+
     <div className="flex flex-col gap-6 pt-12 lg:gap-8">
 
-      {/* HEADER — MATCH DASHBOARD */}
+      {/* HEADER */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
           Simulation Analytics
@@ -68,29 +155,54 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* SELECT SIMULATION */}
-      <SimulationSelector
-        simulations={simulations}
-        selectedId={selectedId}
-        onChange={setSelectedId}
-      />
-
-      {!selectedSimulation ? (
+      {/* LOADING */}
+      {loading ? (
         <p className="text-muted-foreground">
-          Select a simulation to begin analysis.
+          Loading analytics...
         </p>
       ) : (
+
         <>
-          <AnalyticsOverview data={selectedSimulation} />
+          {/* SELECTOR */}
+          <SimulationSelector
+            simulations={simulations}
+            selectedId={selectedId}
+            onChange={setSelectedId}
+          />
 
-          <ComparisonChart data={selectedSimulation} />
+          {!selectedSimulation ? (
+            <p className="text-muted-foreground">
+              Select a simulation to begin analysis.
+            </p>
+          ) : (
+            <>
+              <AnalyticsOverview
+                data={selectedSimulation}
+              />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ScenarioComparisonTable data={selectedSimulation} />
-            <RsiAnalysis data={selectedSimulation} />
-          </div>
+              <ComparisonChart
+                data={selectedSimulation}
+              />
 
-          <RecommendationPanel data={selectedSimulation} />
+              <div className="grid gap-6 lg:grid-cols-2">
+
+                <ScenarioComparisonTable
+                  data={selectedSimulation}
+                />
+
+                <RsiAnalysis
+                  data={selectedSimulation}
+                />
+
+              </div>
+
+              <RecommendationPanel
+                data={selectedSimulation}
+              />
+
+            </>
+          )}
+
         </>
       )}
 

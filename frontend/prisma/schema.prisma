@@ -18,13 +18,31 @@ enum ScenarioType {
   CUSTOM
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
+enum GrowthModel {
+  STABLE
+  BALANCED
+  HIGH
+}
 
-  role      Role     @default(USER)
+enum IncomeType {
+  STABLE
+  FLEXIBLE
+  SEASONAL
+}
+
+enum SavingBehavior {
+  CONSISTENT
+  FLEXIBLE
+  OPPORTUNISTIC
+}
+
+model User {
+  id       String  @id @default(cuid())
+  name     String?
+  email    String  @unique
+  password String
+
+  role Role @default(USER)
 
   emailVerified DateTime?
   image         String?
@@ -37,34 +55,75 @@ model User {
 }
 
 model Simulation {
-  id                   String   @id @default(cuid())
-  userId               String
+  id     String @id @default(cuid())
+  userId String
 
-  age                  Int
-  retirementAge        Int
-  monthlyIncome        Float
-  monthlyContribution  Float
-  currentSavings       Float?
-  inflationRate        Float
-  lifestyle            String
+  /**
+   * ================= CORE AGE DATA =================
+   */
 
-  user   User   @relation(fields: [userId], references: [id])
+  age           Int
+  retirementAge Int
 
-  result Result?
+  /**
+   * ================= FINANCIAL =================
+   */
+
+  monthlyIncome       Float
+  monthlyContribution Float
+  currentSavings      Float?
+
+  inflationRate Float
+
+  /**
+   * ================= NEW INPUTS (FROM FORM) =================
+   */
+
+  growthModel    GrowthModel
+  incomeType     IncomeType
+  savingBehavior SavingBehavior
+
+  includeIrregular  Boolean @default(false)
+  extraContribution Float?
+
+  lifestyle String
+
+  /**
+   * ================= RELATIONS =================
+   */
+
+  user User @relation(fields: [userId], references: [id])
+
+  result          Result?
   recommendations Recommendation[]
-  scenarios Scenario[]
+  scenarios       Scenario[]
 
   createdAt DateTime @default(now())
 }
 
 model Result {
-  id                         String  @id @default(cuid())
-  simulationId               String  @unique
+  id           String @id @default(cuid())
+  simulationId String @unique
 
-  projectedValue             Float
-  monthlyRetirementIncome    Float
-  rsiScore                   Float
-  readinessLevel             String
+  /**
+   * ================= CORE OUTPUT =================
+   */
+
+  projectedSavings       Float
+  estimatedMonthlyIncome Float
+
+  inflationAdjustedValue Float
+
+  rsiScore Float
+
+  readinessLevel String
+
+  /**
+   * ================= OPTIONAL ML OUTPUT =================
+   */
+
+  riskScore       Float?
+  confidenceScore Float?
 
   simulation Simulation @relation(fields: [simulationId], references: [id])
 
@@ -72,40 +131,64 @@ model Result {
 }
 
 model Scenario {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId        String
-  simulationId  String
+  userId       String
+  simulationId String
 
-  name          String
-  scenarioType  ScenarioType?   // ✅ Conservative, Moderate, etc.
+  name         String
+  scenarioType ScenarioType?
 
-  // 🔁 FULL OVERRIDE MODEL (nullable = fallback to base simulation)
-  age                  Int?
-  retirementAge        Int?
-  monthlyIncome        Float?
-  monthlyContribution  Float?
-  currentSavings       Float?
-  inflationRate        Float?
-  lifestyle            String?
+  /**
+   * ================= OVERRIDES =================
+   */
 
-  user        User       @relation(fields: [userId], references: [id])
-  simulation  Simulation @relation(fields: [simulationId], references: [id])
+  age           Int?
+  retirementAge Int?
 
-  result ScenarioResult?
-  recommendations Recommendation[]   // ✅ scenario-specific ML output
+  monthlyIncome       Float?
+  monthlyContribution Float?
+
+  currentSavings Float?
+  inflationRate  Float?
+
+  growthModel    GrowthModel?
+  incomeType     IncomeType?
+  savingBehavior SavingBehavior?
+
+  includeIrregular  Boolean?
+  extraContribution Float?
+
+  lifestyle String?
+
+  /**
+   * ================= RELATIONS =================
+   */
+
+  user       User       @relation(fields: [userId], references: [id])
+  simulation Simulation @relation(fields: [simulationId], references: [id])
+
+  result          ScenarioResult?
+  recommendations Recommendation[]
 
   createdAt DateTime @default(now())
 }
 
 model ScenarioResult {
-  id                         String  @id @default(cuid())
-  scenarioId                 String  @unique
+  id         String @id @default(cuid())
+  scenarioId String @unique
 
-  projectedValue             Float
-  monthlyRetirementIncome    Float
-  rsiScore                   Float
-  readinessLevel             String
+  projectedSavings       Float
+  estimatedMonthlyIncome Float
+
+  inflationAdjustedValue Float
+
+  rsiScore Float
+
+  readinessLevel String
+
+  riskScore       Float?
+  confidenceScore Float?
 
   scenario Scenario @relation(fields: [scenarioId], references: [id])
 
@@ -113,17 +196,29 @@ model ScenarioResult {
 }
 
 model Recommendation {
-  id              String  @id @default(cuid())
+  id String @id @default(cuid())
 
-  simulationId    String?
-  scenarioId      String?
+  simulationId String?
+  scenarioId   String?
 
-  message         String
-  type            String
+  message String
+  type    String
+
   confidenceScore Float?
 
   simulation Simulation? @relation(fields: [simulationId], references: [id])
   scenario   Scenario?   @relation(fields: [scenarioId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id String @id @default(cuid())
+
+  email String
+
+  token     String   @unique
+  expiresAt DateTime
 
   createdAt DateTime @default(now())
 }

@@ -179,6 +179,15 @@ export default function SignInPage() {
 
       {/* SIGNUP LINK */}
 
+      <div className="text-right">
+  <Link
+    href="/auth/forgot-password"
+    className="text-sm text-[#0606EA] hover:underline"
+  >
+    Forgot password?
+  </Link>
+</div>
+
       <p className="text-sm text-center text-muted-foreground">
 
         Don’t have an account?{" "}
@@ -191,6 +200,7 @@ export default function SignInPage() {
           Sign up
 
         </Link>
+      
 
       </p>
 

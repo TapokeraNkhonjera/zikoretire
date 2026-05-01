@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "components/sections/dashboard/header.jsx"  ],
+, "components/sections/dashboard/header.jsx", "app/(dashboard)/dashboard/page.tsx"  ],
   "exclude": ["node_modules"]
 }
