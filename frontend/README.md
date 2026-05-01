@@ -98,17 +98,6 @@ NEXTAUTH_URL=http://localhost:3000
 
 
 # ================================
-# RESEND CONFIG
-# ================================
-
-# Replace with your actual Resend API key
-RESEND_API_KEY=re_V5YmPFAv_5P8oXnKBSGQDy5n6bXMCkQxE
-
-# Fake ZikoRetire email (works in Resend test mode)
-RESEND_FROM_EMAIL=ZikoRetire <onboarding@resend.dev>
-
-
-# ================================
 # APP URL
 # ================================
 
