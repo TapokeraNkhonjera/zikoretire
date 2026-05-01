@@ -14,7 +14,8 @@ import { ProjectionInputs } from "@/types/ProjectionInputs"
 
 /* ================= STORAGE ================= */
 
-const STORAGE_KEY = "projection_state_v1"
+const getStorageKey = (userId?: string) =>
+  userId ? `projection_state_${userId}` : "projection_state_guest"
 
 /* ================= DEFAULT STATE ================= */
 
@@ -39,11 +40,11 @@ const defaultInputs: ProjectionInputs = {
 
 /* ================= SAFE STORAGE ================= */
 
-const getStoredState = () => {
+const getStoredState = (userId?: string) => {
   if (typeof window === "undefined") return null
 
   try {
-    const saved = sessionStorage.getItem(STORAGE_KEY)
+    const saved = sessionStorage.getItem(getStorageKey(userId))
     return saved ? JSON.parse(saved) : null
   } catch {
     return null
@@ -137,31 +138,95 @@ export default function SimulationPage() {
 
   /* ================= PERSIST ================= */
 
-  useEffect(() => {
-    const payload = {
-      version: 1,
-      inputs,
-      results
-    }
+useEffect(() => {
+  if (!userId) return
 
-    sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(payload)
-    )
-  }, [inputs, results])
+  const storageKey = getStorageKey(userId)
+
+  const payload = {
+    version: 1,
+    inputs,
+    results
+  }
+
+  sessionStorage.setItem(
+    storageKey,
+    JSON.stringify(payload)
+  )
+}, [inputs, results, userId])
 
   /* ================= DIRTY CHECK ================= */
 
-  useEffect(() => {
-    if (!results || !lastCalculatedInputs.current) return
+useEffect(() => {
+  if (!session) return // 🚨 wait for session
 
-    const isSame =
-      JSON.stringify(inputs) ===
-      JSON.stringify(lastCalculatedInputs.current)
+  const storageKey = getStorageKey(userId)
 
-    setIsDirty(!isSame)
+  const searchParams = new URLSearchParams(window.location.search)
+  const loadId = searchParams.get("load")
 
-  }, [inputs, results])
+  if (loadId) {
+    // 🔵 Load from backend
+    fetch(`/api/simulation/get?id=${loadId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          const sim = data.data
+
+          const historicInputs: ProjectionInputs = {
+            currentAge: sim.age.toString(),
+            retirementAge: sim.retirementAge.toString(),
+            monthlyIncome: sim.monthlyIncome.toString(),
+            monthlyContribution: sim.monthlyContribution.toString(),
+            currentSavings: sim.currentSavings?.toString() || "0",
+            inflationRate: sim.inflationRate.toString(),
+            growthModel: sim.growthModel.toLowerCase(),
+            incomeType: sim.incomeType.toLowerCase(),
+            savingBehavior: sim.savingBehavior.toLowerCase(),
+            includeIrregular: sim.includeIrregular,
+            extraContribution: sim.extraContribution?.toString() || ""
+          }
+
+          setInputs(historicInputs)
+          lastCalculatedInputs.current = historicInputs
+
+          if (sim.result) {
+            setResults({
+              projectedSavings: sim.result.projectedSavings,
+              estimatedMonthlyIncome: sim.result.estimatedMonthlyIncome,
+              inflationAdjustedValue: sim.result.inflationAdjustedValue,
+              rsiScore: sim.result.rsiScore
+            })
+          }
+
+          window.history.replaceState(null, "", window.location.pathname)
+        }
+      })
+      .catch(console.error)
+
+  } else {
+    // 🟢 Load user-specific session state
+    try {
+      const saved = sessionStorage.getItem(storageKey)
+
+      if (saved) {
+        const parsed = JSON.parse(saved)
+
+        if (parsed.inputs) {
+          setInputs(parsed.inputs)
+          lastCalculatedInputs.current = parsed.inputs
+        }
+
+        if (parsed.results) {
+          setResults(parsed.results)
+        }
+      }
+    } catch {
+      console.error("Failed to load session storage")
+    }
+  }
+
+}, [session, userId])
 
   /* ================= CALCULATE ================= */
 
@@ -266,7 +331,7 @@ export default function SimulationPage() {
 
     lastCalculatedInputs.current = null
 
-    sessionStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(getStorageKey(userId))
   }
 
   /* ================= SAVE ================= */
