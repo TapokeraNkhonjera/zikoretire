@@ -33,6 +33,10 @@ export interface ProjectionMeta {
   annualReturnRate: number
   adjustedContribution: number
   engine: string
+  mlStatus?: string
+  mlWarnings?: string[]
+  mlRisk?: string
+  mlRequestId?: string | null
 }
 
 export interface ProjectionResult {
@@ -93,6 +97,12 @@ export default function ProjectionResults({
           {isDirty && (
             <div className="p-3 text-sm border rounded-md bg-amber-500/10 text-amber-500 border-amber-500/20">
               ⚠️ Inputs have changed. Recalculate to see updated results.
+            </div>
+          )}
+
+          {results.meta?.mlWarnings?.includes("ML_FALLBACK_RULE_ENGINE") && (
+            <div className="p-3 text-sm border rounded-md bg-amber-500/10 text-amber-600 border-amber-500/20">
+              ML response was delayed or unavailable. A safe fallback engine was used for this result.
             </div>
           )}
 

@@ -102,6 +102,12 @@ NEXTAUTH_URL=http://localhost:3000
 # ================================
 
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# ================================
+# ML BACKEND INTEGRATION
+# ================================
+MLBACKEND_URL=http://127.0.0.1:8000
+MLBACKEND_TIMEOUT_MS=8000
 ```
 
 👉 Make sure:
@@ -171,6 +177,52 @@ npm run dev
 Open:
 
 👉 http://localhost:3000
+
+---
+
+# 🤝 Running Frontend + MLBackend Together (Required for ML Integration)
+
+Run both services in separate terminals.
+
+## Terminal A: MLBackend
+
+```bash
+cd MLBackend
+py -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+py -m uvicorn app.main:app --reload
+```
+
+Health checks:
+- `http://127.0.0.1:8000/api/health/live` -> should return `ok`
+- `http://127.0.0.1:8000/api/health/ready` -> should return `ready`
+
+## Terminal B: Next.js Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open:
+- `http://localhost:3000`
+
+## Expected UX behavior (Fail-safe + Loading)
+
+1. When user submits projection/scenario form:
+   - buttons are disabled
+   - loading message is shown while ML is processing
+2. Frontend calls `POST /api/simulation/run`.
+3. Next.js route attempts ML call with timeout (`MLBACKEND_TIMEOUT_MS`).
+4. If ML succeeds in time:
+   - result uses ML-enhanced score
+5. If ML is delayed/unavailable/errors:
+   - route falls back safely to rule engine
+   - UI shows fallback warning: "safe fallback engine was used"
+
+This ensures users still get results instead of hard failures.
 
 ---
 

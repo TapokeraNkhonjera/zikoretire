@@ -152,6 +152,7 @@ export default function ScenarioPanel({
           setInputs={handleChange}
           onCalculate={handleRun}
           onReset={() => {}}
+          isLoading={loading}
         />
 
         {!isBase && (
@@ -173,7 +174,7 @@ export default function ScenarioPanel({
 
         {loading ? (
           <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-            Running simulation...
+            Processing scenario with ML and fail-safe checks...
           </div>
         ) : (
           <ProjectionResults

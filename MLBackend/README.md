@@ -148,6 +148,7 @@ Before using a new model in production:
 - Graceful degraded responses when prediction fails
 - Explainability fallback in `core/explain.py`
 - API-level exception guard in `app/routes/readiness.py`
+- Request ID middleware with `x-request-id` propagation
 - Live/readiness health endpoints for deployment checks
 - Input validation bounds in `app/schema/readiness.py`
 

@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+import uuid
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.readiness import router as readiness_router
@@ -16,6 +18,28 @@ app.add_middleware(
 
 # Routes
 app.include_router(readiness_router, prefix="/api")
+
+
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "degraded",
+                "error": "UNHANDLED_SERVER_ERROR",
+                "message": "The server encountered an unexpected error.",
+                "request_id": request_id
+            },
+        )
+
+    response.headers["x-request-id"] = request_id
+    return response
 
 @app.get("/")
 def root():

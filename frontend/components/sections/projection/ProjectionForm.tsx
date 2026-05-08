@@ -16,11 +16,13 @@ export default function ProjectionForm({
   setInputs,
   onCalculate,
   onReset,
+  isLoading = false,
 }: {
   inputs: ProjectionInputs
   setInputs: (data: ProjectionInputs) => void
   onCalculate: () => void
   onReset: () => void
+  isLoading?: boolean
 }) {
 
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -327,15 +329,20 @@ export default function ProjectionForm({
 
       {/* ================= ACTIONS ================= */}
       <div className="flex gap-3">
-        <Button onClick={handleSubmit} className="flex-1 h-12 gap-2">
+        <Button
+          onClick={handleSubmit}
+          className="flex-1 h-12 gap-2"
+          disabled={isLoading}
+        >
           <Calculator className="w-5 h-5" />
-          Run Projection
+          {isLoading ? "Processing with ML..." : "Run Projection"}
         </Button>
 
         <Button
           variant="outline"
           onClick={onReset}
           className="h-12 gap-2"
+          disabled={isLoading}
         >
           <RotateCcw className="w-5 h-5" />
         </Button>

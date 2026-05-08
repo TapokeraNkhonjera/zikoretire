@@ -440,6 +440,7 @@ export default function SimulationPage() {
             setInputs={setInputs}
             onCalculate={handleCalculate}
             onReset={handleReset}
+            isLoading={loading}
           />
         </div>
 
@@ -447,7 +448,7 @@ export default function SimulationPage() {
 
           {loading ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              Running simulation...
+              Processing your form with ML and fail-safe checks...
             </div>
           ) : (
             <ProjectionResults
