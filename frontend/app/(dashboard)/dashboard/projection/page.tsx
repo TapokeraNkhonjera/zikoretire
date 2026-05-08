@@ -53,25 +53,26 @@ const getStoredState = (userId?: string) => {
 
 export default function SimulationPage() {
 
-  /* ================= SESSION ================= */
+  /* ================= STATE LOADING ================= */
 
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const userId = session?.user?.id
-
-  /* ================= STATE ================= */
 
   const [inputs, setInputs] = useState<ProjectionInputs>(defaultInputs)
   const [results, setResults] = useState<ProjectionResult | null>(null)
-
-  /* ================= LOAD PERSISTED STATE ================= */
+  
+  const lastCalculatedInputs = useRef<ProjectionInputs | null>(null)
 
   useEffect(() => {
+    if (status === "loading") return
+
+    const storageKey = getStorageKey(userId)
     const searchParams = new URLSearchParams(window.location.search)
     const loadId = searchParams.get("load")
 
     if (loadId) {
-      // 1. Load from Backend if ?load= is present
+      // Load from Backend if ?load= is present
       fetch(`/api/simulation/get?id=${loadId}`)
         .then(res => res.json())
         .then(data => {
@@ -96,13 +97,12 @@ export default function SimulationPage() {
             lastCalculatedInputs.current = historicInputs
 
             if (sim.result) {
-               const historicResult: ProjectionResult = {
+               setResults({
                   projectedSavings: sim.result.projectedSavings,
                   estimatedMonthlyIncome: sim.result.estimatedMonthlyIncome,
                   inflationAdjustedValue: sim.result.inflationAdjustedValue,
                   rsiScore: sim.result.rsiScore
-               }
-               setResults(historicResult)
+               })
             }
 
             // Clean the URL so refresh doesn't trigger API fetch again
@@ -111,122 +111,46 @@ export default function SimulationPage() {
         })
         .catch(console.error)
     } else {
-      // 2. Otherwise load from Session Storage
-      const stored = getStoredState()
-      if (stored) {
-        if (stored.inputs) {
-          setInputs(stored.inputs)
-          lastCalculatedInputs.current = stored.inputs
+      // Load from Session Storage using correct user context
+      try {
+        const saved = sessionStorage.getItem(storageKey)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.inputs) {
+            setInputs(parsed.inputs)
+            lastCalculatedInputs.current = parsed.inputs
+          }
+          if (parsed.results) {
+            setResults(parsed.results)
+          }
         }
-        if (stored.results) {
-          setResults(stored.results)
-        }
+      } catch {
+        console.error("Failed to load session storage")
       }
     }
-  }, [])
+  }, [status, userId])
 
   const [loading, setLoading] = useState(false)
-
-  const [error, setError] =
-    useState<string | null>(null)
-
+  const [error, setError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
-
-  /* ================= TRACK LAST CALCULATED INPUTS ================= */
-
-  const lastCalculatedInputs = useRef<ProjectionInputs | null>(null)
 
   /* ================= PERSIST ================= */
 
-useEffect(() => {
-  if (!userId) return
+  useEffect(() => {
+    if (status === "loading" || !userId) return
 
-  const storageKey = getStorageKey(userId)
-
-  const payload = {
-    version: 1,
-    inputs,
-    results
-  }
-
-  sessionStorage.setItem(
-    storageKey,
-    JSON.stringify(payload)
-  )
-}, [inputs, results, userId])
-
-  /* ================= DIRTY CHECK ================= */
-
-useEffect(() => {
-  if (!session) return // 🚨 wait for session
-
-  const storageKey = getStorageKey(userId)
-
-  const searchParams = new URLSearchParams(window.location.search)
-  const loadId = searchParams.get("load")
-
-  if (loadId) {
-    // 🔵 Load from backend
-    fetch(`/api/simulation/get?id=${loadId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.data) {
-          const sim = data.data
-
-          const historicInputs: ProjectionInputs = {
-            currentAge: sim.age.toString(),
-            retirementAge: sim.retirementAge.toString(),
-            monthlyIncome: sim.monthlyIncome.toString(),
-            monthlyContribution: sim.monthlyContribution.toString(),
-            currentSavings: sim.currentSavings?.toString() || "0",
-            inflationRate: sim.inflationRate.toString(),
-            growthModel: sim.growthModel.toLowerCase(),
-            incomeType: sim.incomeType.toLowerCase(),
-            savingBehavior: sim.savingBehavior.toLowerCase(),
-            includeIrregular: sim.includeIrregular,
-            extraContribution: sim.extraContribution?.toString() || ""
-          }
-
-          setInputs(historicInputs)
-          lastCalculatedInputs.current = historicInputs
-
-          if (sim.result) {
-            setResults({
-              projectedSavings: sim.result.projectedSavings,
-              estimatedMonthlyIncome: sim.result.estimatedMonthlyIncome,
-              inflationAdjustedValue: sim.result.inflationAdjustedValue,
-              rsiScore: sim.result.rsiScore
-            })
-          }
-
-          window.history.replaceState(null, "", window.location.pathname)
-        }
-      })
-      .catch(console.error)
-
-  } else {
-    // 🟢 Load user-specific session state
-    try {
-      const saved = sessionStorage.getItem(storageKey)
-
-      if (saved) {
-        const parsed = JSON.parse(saved)
-
-        if (parsed.inputs) {
-          setInputs(parsed.inputs)
-          lastCalculatedInputs.current = parsed.inputs
-        }
-
-        if (parsed.results) {
-          setResults(parsed.results)
-        }
-      }
-    } catch {
-      console.error("Failed to load session storage")
+    const storageKey = getStorageKey(userId)
+    const payload = {
+      version: 1,
+      inputs,
+      results
     }
-  }
 
-}, [session, userId])
+    sessionStorage.setItem(
+      storageKey,
+      JSON.stringify(payload)
+    )
+  }, [inputs, results, userId, status])
 
   /* ================= CALCULATE ================= */
 
@@ -337,7 +261,7 @@ useEffect(() => {
   /* ================= SAVE ================= */
 
   const handleSaveSimulation =
-    async (resultData: ProjectionResult) => {
+    async (resultData: ProjectionResult, forceSave = false) => {
 
     const dataToSave = lastCalculatedInputs.current || inputs
 
@@ -392,7 +316,8 @@ useEffect(() => {
             savingBehavior:
               dataToSave.savingBehavior,
 
-            results: resultData
+            results: resultData,
+            forceSave
           })
 
         }
@@ -401,6 +326,13 @@ useEffect(() => {
       const data = await res.json()
 
       if (!data.success) {
+        if (data.isDuplicate) {
+          const confirmSave = window.confirm(data.message + "\n\nDo you want to save it anyway?");
+          if (confirmSave) {
+            handleSaveSimulation(resultData, true);
+          }
+          return;
+        }
         throw new Error(data.message)
       }
 
@@ -416,7 +348,7 @@ useEffect(() => {
 
   }
 
-  const handleAddScenario = async () => {
+  const handleAddScenario = async (forceSave = false) => {
     if (!results) {
       alert("Please run a simulation first")
       return
@@ -449,13 +381,21 @@ useEffect(() => {
           growthModel: dataToSave.growthModel,
           incomeType: dataToSave.incomeType,
           savingBehavior: dataToSave.savingBehavior,
-          results: results
+          results: results,
+          forceSave
         })
       })
 
       const data = await res.json()
 
       if (!data.success) {
+        if (data.isDuplicate) {
+          const confirmSave = window.confirm(data.message + "\n\nDo you want to create a scenario from it anyway?");
+          if (confirmSave) {
+            handleAddScenario(true);
+          }
+          return;
+        }
         throw new Error(data.message)
       }
 

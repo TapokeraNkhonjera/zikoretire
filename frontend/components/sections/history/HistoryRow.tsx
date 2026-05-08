@@ -75,8 +75,8 @@ export default function HistoryRow({
 
       {/* ✅ FIXED: use result monthly income */}
       <TableCell className="font-medium text-right">
-        {result?.monthlyIncome
-          ? `MWK ${result.monthlyIncome.toLocaleString()}`
+        {result?.estimatedMonthlyIncome
+          ? `MWK ${result.estimatedMonthlyIncome.toLocaleString()}`
           : "-"}
       </TableCell>
 

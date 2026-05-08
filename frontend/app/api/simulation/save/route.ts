@@ -26,7 +26,8 @@ export async function POST(req: Request) {
 
       lifestyle = "moderate",
 
-      results
+      results,
+      forceSave = false
     } = data
 
     /* ================= VALIDATION ================= */
@@ -53,6 +54,38 @@ export async function POST(req: Request) {
         { success: false, message: "Missing results data" },
         { status: 400 }
       )
+    }
+
+    /* ================= DUPLICATE CHECK ================= */
+
+    if (!forceSave) {
+      const existingSims = await prisma.simulation.findMany({
+        where: {
+          userId,
+          age,
+          retirementAge,
+          monthlyIncome,
+          monthlyContribution,
+          currentSavings,
+          growthModel: growthModel.toUpperCase(),
+        },
+        include: {
+          result: true,
+        },
+        take: 1,
+      });
+
+      if (existingSims.length > 0) {
+        return NextResponse.json({
+          success: false,
+          isDuplicate: true,
+          message: "A simulation with similar results is already saved.",
+          data: {
+            simulationId: existingSims[0].id,
+            resultId: existingSims[0].result?.id
+          }
+        });
+      }
     }
 
     console.log("💾 SAVE INPUT:", {
