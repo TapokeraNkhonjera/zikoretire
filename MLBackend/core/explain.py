@@ -105,7 +105,7 @@ def _fallback_impacts(input_features):
 # =========================================================
 # HUMAN EXPLANATION (FIXED + LESS FLAT)
 # =========================================================
-def generate_explanation(factors):
+def generate_explanation(factors, model_type="readiness"):
 
     top = factors[:5]
 
@@ -116,24 +116,32 @@ def generate_explanation(factors):
 
     parts = []
 
+    # Model-specific explanations
+    model_contexts = {
+        "readiness": "retirement readiness",
+        "consistency": "contribution consistency", 
+        "volatility": "income volatility",
+        "sustainability": "pension sustainability",
+        "inflation_vulnerability": "inflation vulnerability"
+    }
+    
+    context = model_contexts.get(model_type, "financial outlook")
+    
     # =====================================================
     # GLOBAL INTERPRETATION (IMPORTANT FIX)
     # =====================================================
     if strongest:
-
         if strongest["impact"] > 0.2:
             parts.append(
-                f"Your retirement outlook is strongly supported by {strongest['label']}."
+                f"Your {context} is strongly supported by {strongest['label']}."
             )
-
         elif strongest["impact"] < -0.2:
             parts.append(
-                f"Your retirement outlook is being significantly held back by {strongest['label']}."
+                f"Your {context} is being significantly held back by {strongest['label']}."
             )
-
         else:
             parts.append(
-                "Your financial profile shows mixed but moderate influence across factors."
+                f"Your {context} shows mixed but moderate influence across factors."
             )
 
     # =====================================================
@@ -158,6 +166,6 @@ def generate_explanation(factors):
     # FALLBACK
     # =====================================================
     if not parts:
-        return "Your financial drivers are balanced with no dominant influence detected."
+        return f"Your {context} drivers are balanced with no dominant influence detected."
 
     return ". ".join(parts) + "."

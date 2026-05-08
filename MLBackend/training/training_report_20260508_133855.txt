@@ -1,0 +1,45 @@
+============================================================
+MULTI-MODEL TRAINING REPORT
+============================================================
+Training Date: 2026-05-08 13:38:56
+Models Trained: 5
+
+MODEL: READINESS
+------------------------------
+Type: RandomForest
+Validation R²: 0.8717
+Validation MSE: 0.000131
+Validation MAE: 0.0066
+Cross-val R²: 0.8397 ± 0.0341
+
+MODEL: CONSISTENCY
+------------------------------
+Type: GradientBoosting
+Validation R²: 0.6261
+Validation MSE: 0.010020
+Validation MAE: 0.0198
+Cross-val R²: 0.6756 ± 0.0415
+
+MODEL: VOLATILITY
+------------------------------
+Type: RandomForest
+Validation R²: 0.9997
+Validation MSE: 0.000023
+Validation MAE: 0.0005
+Cross-val R²: 0.9998 ± 0.0003
+
+MODEL: SUSTAINABILITY
+------------------------------
+Type: GradientBoosting
+Validation R²: 0.8552
+Validation MSE: 0.000148
+Validation MAE: 0.0049
+Cross-val R²: 0.8767 ± 0.0376
+
+MODEL: INFLATION_VULNERABILITY
+------------------------------
+Type: RandomForest
+Validation R²: 0.9990
+Validation MSE: 0.000018
+Validation MAE: 0.0031
+Cross-val R²: 0.9984 ± 0.0007

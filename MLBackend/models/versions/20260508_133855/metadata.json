@@ -1,0 +1,109 @@
+{
+  "version": "20260508_133855",
+  "created_at": "2026-05-08T13:38:56.015738",
+  "models": [
+    "readiness",
+    "consistency",
+    "volatility",
+    "sustainability",
+    "inflation_vulnerability"
+  ],
+  "metrics": {
+    "readiness": {
+      "train_mse": 4.808865847222644e-05,
+      "val_mse": 0.00013112664542717003,
+      "train_r2": 0.9508519913589472,
+      "val_r2": 0.8716681092195748,
+      "train_mae": 0.004209565903029558,
+      "val_mae": 0.006610418706137242,
+      "cv_mean": 0.8397355120583194,
+      "cv_std": 0.03411147523566111,
+      "model_type": "RandomForest",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10,
+        "random_state": 42,
+        "min_samples_split": 5,
+        "min_samples_leaf": 2
+      }
+    },
+    "consistency": {
+      "train_mse": 4.8403140650959064e-05,
+      "val_mse": 0.010020236677386591,
+      "train_r2": 0.9979521843371807,
+      "val_r2": 0.6261435279840764,
+      "train_mae": 0.003576320099603052,
+      "val_mae": 0.0198001999052876,
+      "cv_mean": 0.6756238584956553,
+      "cv_std": 0.041525445031604755,
+      "model_type": "GradientBoosting",
+      "params": {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "max_depth": 6,
+        "random_state": 42
+      }
+    },
+    "volatility": {
+      "train_mse": 9.692793508691789e-07,
+      "val_mse": 2.2860548353377704e-05,
+      "train_r2": 0.9999866008102248,
+      "val_r2": 0.9996877089863941,
+      "train_mae": 0.00036315523302989745,
+      "val_mae": 0.0005411474745518017,
+      "cv_mean": 0.9998329162348153,
+      "cv_std": 0.0003224333545165971,
+      "model_type": "RandomForest",
+      "params": {
+        "n_estimators": 150,
+        "max_depth": 8,
+        "random_state": 42,
+        "min_samples_split": 10
+      }
+    },
+    "sustainability": {
+      "train_mse": 2.6443695132948986e-06,
+      "val_mse": 0.00014793347818272727,
+      "train_r2": 0.9972973773896268,
+      "val_r2": 0.8552194872135388,
+      "train_mae": 0.001257941569034606,
+      "val_mae": 0.004880723381947445,
+      "cv_mean": 0.8767183722032998,
+      "cv_std": 0.03759339941514327,
+      "model_type": "GradientBoosting",
+      "params": {
+        "n_estimators": 120,
+        "learning_rate": 0.08,
+        "max_depth": 7,
+        "random_state": 42
+      }
+    },
+    "inflation_vulnerability": {
+      "train_mse": 9.691899400822076e-06,
+      "val_mse": 1.802765383276004e-05,
+      "train_r2": 0.9994536764064857,
+      "val_r2": 0.9989620758645997,
+      "train_mae": 0.0018045032899193041,
+      "val_mae": 0.003052335554913204,
+      "cv_mean": 0.9983790983861676,
+      "cv_std": 0.0007048526968681807,
+      "model_type": "RandomForest",
+      "params": {
+        "n_estimators": 80,
+        "max_depth": 12,
+        "random_state": 42,
+        "min_samples_leaf": 3
+      }
+    }
+  },
+  "features": [
+    "age",
+    "monthly_income",
+    "monthly_contribution",
+    "current_savings",
+    "inflation_rate",
+    "employment_type",
+    "job_stability",
+    "contribution_gap_months"
+  ]
+}
