@@ -12,6 +12,7 @@ import {
   BrainCircuit,
   Home,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,12 @@ const navItems = [
     href: "/admin/dashboard/ml",
     icon: BrainCircuit,
   },
+
+  {
+    title: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
+  },
 ];
 
 export default function AdminSidebar() {
@@ -55,13 +62,13 @@ export default function AdminSidebar() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 h-screen bg-white border-r shadow-md flex flex-col transition-all duration-300",
+        "fixed top-0 left-0 h-screen bg-background border-r shadow-md flex flex-col transition-all duration-300 z-40",
         open ? "w-64" : "w-20"
       )}
     >
       {/* Logo */}
 
-      <div className="flex items-center justify-center p-6 border-b">
+      <div className="flex items-center justify-center p-4 sm:p-6 border-b">
         {open && (
           <h2 className="text-xl font-bold">
             ZikoRetire Admin
@@ -71,7 +78,7 @@ export default function AdminSidebar() {
 
       {/* Navigation */}
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 sm:p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -89,7 +96,7 @@ export default function AdminSidebar() {
                 )}
               >
                 <Icon size={18} />
-                {open && item.title}
+                {open && <span className="hidden sm:inline">{item.title}</span>}
               </Button>
             </Link>
           );
@@ -98,7 +105,7 @@ export default function AdminSidebar() {
 
       {/* Footer */}
 
-      <div className="flex flex-col gap-2 p-4 border-t">
+      <div className="flex flex-col gap-2 p-2 sm:p-4 border-t">
         <Link href="/">
           <Button
             className={cn(
@@ -108,7 +115,7 @@ export default function AdminSidebar() {
             variant="outline"
           >
             <Home size={18} />
-            {open && "Home"}
+            {open && <span className="hidden sm:inline">Home</span>}
           </Button>
         </Link>
 
@@ -120,7 +127,7 @@ export default function AdminSidebar() {
           variant="outline"
         >
           <LogOut size={18} />
-          {open && "Logout"}
+          {open && <span className="hidden sm:inline">Logout</span>}
         </Button>
       </div>
     </div>

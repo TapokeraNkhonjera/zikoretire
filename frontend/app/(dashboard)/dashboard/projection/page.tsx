@@ -414,7 +414,8 @@ export default function SimulationPage() {
 
       setLoading(true)
 
-      const res = await fetch("/api/simulation/save", {
+      // First, get the current simulation ID to link scenario to it
+      const simulationRes = await fetch("/api/simulation/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -434,26 +435,97 @@ export default function SimulationPage() {
         })
       })
 
-      const data = await res.json()
+      const simulationData = await simulationRes.json()
 
-      if (!data.success) {
-        if (data.isDuplicate) {
-          const confirmSave = window.confirm(data.message + "\n\nDo you want to create a scenario from it anyway?");
-          if (confirmSave) {
-            handleAddScenario(true);
+      if (!simulationData.success) {
+        if (simulationData.isDuplicate) {
+          // If simulation is duplicate, ask user if they want to create scenario anyway
+          const confirmScenario = window.confirm(
+            "A simulation with similar results already exists. Would you like to create a scenario from your current projection instead?\n\nThis will allow you to compare different strategies without creating duplicate simulations."
+          );
+          if (confirmScenario) {
+            // Try to get existing simulation ID or use force save
+            const forcedSimulationRes = await fetch("/api/simulation/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId,
+                age: Number(dataToSave.currentAge),
+                retirementAge: Number(dataToSave.retirementAge),
+                monthlyIncome: Number(dataToSave.monthlyIncome),
+                monthlyContribution: Number(dataToSave.monthlyContribution),
+                currentSavings: Number(dataToSave.currentSavings || 0),
+                inflationRate: Number(dataToSave.inflationRate || 0),
+                lifestyle: "moderate",
+                growthModel: dataToSave.growthModel,
+                incomeType: dataToSave.incomeType,
+                savingBehavior: dataToSave.savingBehavior,
+                results: results,
+                forceSave: true
+              })
+            })
+            
+            const forcedSimulationData = await forcedSimulationRes.json()
+            if (forcedSimulationData.success) {
+              // Now create scenario linked to this simulation
+              await createScenarioFromSimulation(forcedSimulationData.data.simulationId, dataToSave, results)
+            } else {
+              throw new Error(forcedSimulationData.message || "Failed to save simulation for scenario")
+            }
           }
-          return;
+          return
         }
-        throw new Error(data.message)
+        throw new Error(simulationData.message)
       }
 
-      router.push(`/dashboard/simulation/${data.data.simulationId}`)
+      // Create scenario linked to the new simulation
+      await createScenarioFromSimulation(simulationData.data.simulationId, dataToSave, results)
 
     } catch (err) {
       console.error(err)
-      alert("Failed to create scenario workspace")
+      alert("Failed to create scenario")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createScenarioFromSimulation = async (simulationId: string, dataToSave: any, results: any) => {
+    const scenarioName = prompt("Enter a name for your scenario:", `${dataToSave.projectionStrategy} Strategy Scenario`)
+    
+    if (!scenarioName) {
+      alert("Scenario name is required")
+      return
+    }
+
+    const res = await fetch("/api/simulation/scenario/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        simulationId,
+        name: scenarioName,
+        overrides: {
+          currentAge: dataToSave.currentAge,
+          retirementAge: dataToSave.retirementAge,
+          monthlyIncome: dataToSave.monthlyIncome,
+          monthlyContribution: dataToSave.monthlyContribution,
+          currentSavings: dataToSave.currentSavings,
+          inflationRate: dataToSave.inflationRate,
+          growthModel: dataToSave.growthModel,
+          incomeType: dataToSave.incomeType,
+          savingBehavior: dataToSave.savingBehavior
+        },
+        results
+      })
+    })
+
+    const data = await res.json()
+
+    if (data.success) {
+      alert(`Scenario "${scenarioName}" created successfully!`)
+      router.push(`/dashboard/simulation/${simulationId}`)
+    } else {
+      throw new Error(data.message || "Failed to save scenario")
     }
   }
 

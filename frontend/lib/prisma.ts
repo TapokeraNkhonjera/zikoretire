@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Notification, type User } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const globalForPrisma = global as unknown as {
@@ -18,6 +18,9 @@ export const prisma =
   new PrismaClient({
     adapter,
   });
+
+// Re-export the types
+export type { Notification, User };
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

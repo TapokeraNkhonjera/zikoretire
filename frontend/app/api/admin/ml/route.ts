@@ -15,18 +15,21 @@ export async function GET() {
       );
     }
 
-    const [healthRes, trainRes] = await Promise.all([
+    const [healthRes, modelStatusRes, trainRes] = await Promise.all([
       fetch(`${MLBACKEND_URL}/api/health/ready`, { cache: "no-store" }),
+      fetch(`${MLBACKEND_URL}/api/models/status`, { cache: "no-store" }),
       fetch(`${MLBACKEND_URL}/api/train-status`, { cache: "no-store" }),
     ]);
 
     const healthOnline = healthRes.ok;
+    const modelStatusData = modelStatusRes.ok ? await modelStatusRes.json() : null;
     const trainData = trainRes.ok ? await trainRes.json() : null;
 
     return NextResponse.json({
       success: true,
       data: {
         mlOnline: healthOnline,
+        modelStatus: modelStatusData?.models ?? {},
         telemetryEvents: trainData?.telemetry_events ?? 0,
         training: trainData?.training ?? {
           running: false,

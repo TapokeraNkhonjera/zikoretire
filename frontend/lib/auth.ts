@@ -105,23 +105,15 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-
-      if (session.user) {
-
-        session.user.id =
-          token.id as string;
-
-        session.user.role =
-          token.role as "ADMIN" | "USER";
-
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role as "ADMIN" | "USER";
       }
 
       return session;
-
     },
 
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-
 };

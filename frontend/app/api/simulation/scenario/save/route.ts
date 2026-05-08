@@ -62,6 +62,19 @@ export async function POST(req: Request) {
     const incomeType = overrides.incomeType ? overrides.incomeType.toUpperCase() : undefined
     const savingBehavior = overrides.savingBehavior ? overrides.savingBehavior.toUpperCase() : undefined
 
+    /* ================= CHECK USER EXISTS ================= */
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found. Please sign out and sign in again." },
+        { status: 404 }
+      )
+    }
+
     const scenario = await prisma.scenario.create({
       data: {
         userId,
@@ -113,6 +126,14 @@ export async function POST(req: Request) {
       scenarioId: scenario.id,
       resultId: savedResult.id
     })
+
+    // 🎯 Trigger notification for scenario creation
+    try {
+      await NotificationService.onScenarioCreated(userId, name, simulationId)
+    } catch (notificationError) {
+      console.error('❌ Failed to create scenario notification:', notificationError)
+      // Don't fail scenario save if notification fails
+    }
 
     return NextResponse.json({
       success: true,

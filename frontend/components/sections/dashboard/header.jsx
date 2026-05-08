@@ -5,6 +5,7 @@ import { Bell, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import StyledNotificationBell from "@/components/notifications/StyledNotificationBell";
 
 export default function Header() {
   const { data: session } = useSession();
@@ -12,7 +13,7 @@ export default function Header() {
 
   return (
     <header
-      className="fixed top-0 right-0 z-50 flex items-center justify-between h-16 px-6 transition-all duration-300 border-b bg-background"
+      className="fixed top-0 right-0 z-50 flex items-center justify-between h-16 px-4 sm:px-6 transition-all duration-300 border-b bg-background"
       style={{
         left: "var(--sidebar-width, 16rem)",
         width: "calc(100% - var(--sidebar-width, 16rem))",
@@ -30,7 +31,7 @@ export default function Header() {
           <p className="text-sm text-muted-foreground">
             Dashboard Overview
           </p>
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="text-lg font-semibold text-foreground truncate">
             Welcome back, {user?.name?.split(" ")[0] ?? "User"}!
           </h1>
         </div>
@@ -38,12 +39,9 @@ export default function Header() {
 
       {/* RIGHT */}
       <div className="flex items-center gap-4">
-        <button className="relative p-2 border rounded-xl hover:bg-muted">
-          <Bell className="w-5 h-5 text-primary" />
-          <span className="absolute w-2 h-2 rounded-full -top-1 -right-1 bg-primary" />
-        </button>
+        <StyledNotificationBell />
 
-        <div className="flex items-center gap-3">
+        <div className="hidden sm:flex sm:items-center sm:gap-3">
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-primary text-primary-foreground">
               {user?.name?.[0]?.toUpperCase() ?? "U"}

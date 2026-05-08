@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { NotificationService } from "@/lib/notificationService"
 
 function mapRiskToScore(mlRisk: string | undefined): number | null {
   if (!mlRisk) return null
@@ -111,6 +114,19 @@ export async function POST(req: Request) {
       results
     })
 
+    /* ================= CHECK USER EXISTS ================= */
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found. Please sign out and sign in again." },
+        { status: 404 }
+      )
+    }
+
     /* ================= SAVE SIMULATION ================= */
 
     const simulation = await prisma.simulation.create({
@@ -176,6 +192,14 @@ const savedResult = await prisma.result.create({
       simulationId: simulation.id,
       resultId: savedResult.id
     })
+
+    // 🎯 Trigger notification for simulation save
+    try {
+      await NotificationService.onSimulationSaved(userId, simulation.id, Number(results.projectedSavings || 0))
+    } catch (notificationError) {
+      console.error('❌ Failed to create simulation save notification:', notificationError)
+      // Don't fail the save operation if notification fails
+    }
 
     return NextResponse.json({
       success: true,

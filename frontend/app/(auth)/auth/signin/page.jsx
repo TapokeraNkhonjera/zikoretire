@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 import { Eye, EyeOff } from "lucide-react";
+import SessionManager from "@/lib/sessionManager";
 
 export default function SignInPage() {
 
@@ -54,8 +55,8 @@ export default function SignInPage() {
 
       }
 
-      const session =
-        await getSession();
+      // Get current session
+      const session = await getSession();
 
       if (!session?.user) {
 
@@ -63,6 +64,10 @@ export default function SignInPage() {
         return;
 
       }
+
+      // Clear other sessions for this user and set current session
+      SessionManager.clearOtherSessionsForUser(session.user.id);
+      SessionManager.setCurrentTabSession(session);
 
       // ⭐ Role redirect
 

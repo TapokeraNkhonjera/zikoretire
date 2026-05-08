@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -177,6 +178,18 @@ export default function ProjectionForm({
           {inputs.projectionStrategy === "sustainability" &&
             "Estimates how long retirement income may last after retirement."}
         </p>
+        
+        <div className="mt-1">
+          <Link 
+            href="/dashboard/strategies" 
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            Read more about strategies
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
       </div>
 
       {/* ================= SLIDERS ================= */}

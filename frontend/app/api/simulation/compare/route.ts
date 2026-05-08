@@ -38,7 +38,7 @@ async function tryEnhanceWithML(input: RunInput, baseResponse: ProjectionRespons
   const timeout = setTimeout(() => controller.abort(), MLBACKEND_TIMEOUT_MS)
 
   try {
-    const mlRes = await fetch(`${MLBACKEND_URL}/api/predict-readiness`, {
+    const mlRes = await fetch(`${MLBACKEND_URL}/api/predict-multi`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mlPayload),
@@ -51,44 +51,35 @@ async function tryEnhanceWithML(input: RunInput, baseResponse: ProjectionRespons
         ...baseResponse,
         meta: {
           ...baseResponse.meta,
-          engine: "rule-v2",
+          engine: "deterministic-v3",
           mlStatus: "http_error",
-          mlWarnings: [`ML_HTTP_${mlRes.status}`, "ML_FALLBACK_RULE_ENGINE"],
+          mlWarnings: [`ML_HTTP_${mlRes.status}`, "ML_FALLBACK_DETERMINISTIC"],
         },
       }
     }
 
     const ml = await mlRes.json()
-    const mlScore = Number(ml?.readiness_percentage ?? 0)
+    const readinessOutput = ml?.outputs?.readiness
+    const mlScore = readinessOutput?.prediction ? Number(readinessOutput.prediction * 100) : baseResponse.rsiScore
     const mlWarnings = Array.isArray(ml?.warnings) ? ml.warnings : []
-    const mlFactors = Array.isArray(ml?.factors) ? ml.factors : []
-    const mlConfidence =
-      typeof ml?.confidence === "number" ? Number(ml.confidence) : null
-    const mlRisk: MLRisk = (ml?.risk as MLRisk) || "UNKNOWN"
+    const mlConfidence = readinessOutput?.confidence ?? null
 
-    const fallbackToRuleEngine =
-      ml?.status === "degraded" || mlRisk === "UNKNOWN" || ml?.prediction == null
+    const fallbackToRuleEngine = 
+      ml?.status === "degraded" || !readinessOutput?.prediction
 
     if (fallbackToRuleEngine) {
       return {
         ...baseResponse,
         meta: {
           ...baseResponse.meta,
-          engine: "rule-v2",
+          engine: "deterministic-v3",
           mlStatus: ml?.status ?? "degraded",
-          mlWarnings: [...mlWarnings, "ML_FALLBACK_RULE_ENGINE"],
-          mlRisk,
+          mlWarnings: [...mlWarnings, "ML_FALLBACK_DETERMINISTIC"],
           mlRequestId: ml?.request_id ?? null,
           mlConfidence,
-          mlPrediction:
-            typeof ml?.prediction === "number" ? Number(ml.prediction) : null,
-          mlReadinessPercentage:
-            typeof ml?.readiness_percentage === "number"
-              ? Number(ml.readiness_percentage)
-              : null,
-          mlFactorsCount: mlFactors.length,
-          mlExplanation: typeof ml?.explanation === "string" ? ml.explanation : null,
-          mlAdvice: typeof ml?.advice === "string" ? ml.advice : null,
+          mlOverallConfidence: ml?.overall_confidence ?? null,
+          mlOutputs: ml?.outputs ?? null,
+          mlModelStatus: ml?.model_status ?? null,
         },
       }
     }
@@ -98,21 +89,14 @@ async function tryEnhanceWithML(input: RunInput, baseResponse: ProjectionRespons
       rsiScore: Number(mlScore.toFixed(1)),
       meta: {
         ...baseResponse.meta,
-        engine: "ml-v1",
+        engine: "ml-enhanced-v3",
         mlStatus: ml?.status ?? "ok",
         mlWarnings,
-        mlRisk,
         mlRequestId: ml?.request_id ?? null,
         mlConfidence,
-        mlPrediction:
-          typeof ml?.prediction === "number" ? Number(ml.prediction) : null,
-        mlReadinessPercentage:
-          typeof ml?.readiness_percentage === "number"
-            ? Number(ml.readiness_percentage)
-            : null,
-        mlFactorsCount: mlFactors.length,
-        mlExplanation: typeof ml?.explanation === "string" ? ml.explanation : null,
-        mlAdvice: typeof ml?.advice === "string" ? ml.advice : null,
+        mlOverallConfidence: ml?.overall_confidence,
+        mlOutputs: ml?.outputs,
+        mlModelStatus: ml?.model_status,
       },
     }
   } catch {
@@ -121,9 +105,9 @@ async function tryEnhanceWithML(input: RunInput, baseResponse: ProjectionRespons
       ...baseResponse,
       meta: {
         ...baseResponse.meta,
-        engine: "rule-v2",
+        engine: "deterministic-v3",
         mlStatus: "unavailable",
-        mlWarnings: ["ML_UNAVAILABLE", "ML_FALLBACK_RULE_ENGINE"],
+        mlWarnings: ["ML_UNAVAILABLE", "ML_FALLBACK_DETERMINISTIC"],
       },
     }
   }

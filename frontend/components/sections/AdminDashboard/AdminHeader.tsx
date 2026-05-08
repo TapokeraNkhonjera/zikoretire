@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 
-import { Bell, Menu, LogOut } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/avatar";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import StyledNotificationBell from "@/components/notifications/StyledNotificationBell";
 
 export default function AdminHeader() {
   const { data: session } = useSession();
@@ -19,7 +20,7 @@ export default function AdminHeader() {
 
   return (
     <header
-      className="fixed top-0 right-0 z-50 flex items-center justify-between h-16 px-6 border-b bg-background"
+      className="fixed top-0 right-0 z-50 flex items-center justify-between h-16 px-4 sm:px-6 border-b bg-background"
       style={{
         left: "var(--sidebar-width, 16rem)",
         width:
@@ -40,7 +41,7 @@ export default function AdminHeader() {
             Admin Dashboard
           </p>
 
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-lg font-semibold truncate">
             Welcome back, {user?.name?.split(" ")[0] ?? "User"}!
           </h1>
         </div>
@@ -49,17 +50,15 @@ export default function AdminHeader() {
       {/* RIGHT */}
 
       <div className="flex items-center gap-4">
-        <button className="relative p-2 border rounded-xl hover:bg-muted">
-          <Bell className="w-5 h-5 text-primary" />
+        <StyledNotificationBell />
 
-          <span className="absolute w-2 h-2 rounded-full -top-1 -right-1 bg-primary" />
-        </button>
-
-        <Avatar className="w-8 h-8">
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            {user?.name?.[0]?.toUpperCase() ?? "A"}
-          </AvatarFallback>
-        </Avatar>
+        <div className="hidden sm:flex sm:items-center sm:gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {user?.name?.[0]?.toUpperCase() ?? "A"}
+            </AvatarFallback>
+          </Avatar>
+        </div>
 
         <Button
           variant="outline"

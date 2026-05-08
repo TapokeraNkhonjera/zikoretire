@@ -11,10 +11,40 @@ enum Role {
   USER
 }
 
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  
+  title String
+  message String
+  type String // info, success, warning, error, admin
+  
+  read Boolean @default(false)
+  
+  // Optional link to related resource
+  linkUrl String?
+  linkText String?
+  
+  // For admin notifications
+  isGlobal Boolean @default(false)
+  targetRole String? // USER, ADMIN, null for all
+  
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  
+  user User @relation(fields: [userId], references: [id])
+}
+
 enum ScenarioType {
   CONSERVATIVE
-  MODERATE
+  BALANCED
   AGGRESSIVE
+  INFORMAL
+  SEASONAL
+  INFLATION_STRESS
+  CONTRIBUTION_GROWTH
+  EARLY_RETIREMENT
+  SUSTAINABILITY
   CUSTOM
 }
 
@@ -49,6 +79,7 @@ model User {
 
   simulations Simulation[]
   scenarios   Scenario[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -119,11 +150,15 @@ model Result {
   readinessLevel String
 
   /**
-   * ================= OPTIONAL ML OUTPUT =================
+   * ================= ML OUTPUTS =================
    */
-
-  riskScore       Float?
-  confidenceScore Float?
+  readinessScore        Float?
+  consistencyScore     Float?
+  volatilityScore      Float?
+  sustainabilityScore  Float?
+  inflationVulnerability Float?
+  riskScore           Float?
+  confidenceScore       Float?
 
   simulation Simulation @relation(fields: [simulationId], references: [id])
 
@@ -180,18 +215,22 @@ model ScenarioResult {
 
   projectedSavings       Float
   estimatedMonthlyIncome Float
-
   inflationAdjustedValue Float
-
   rsiScore Float
-
   readinessLevel String
 
-  riskScore       Float?
-  confidenceScore Float?
+  /**
+   * ================= ML OUTPUTS =================
+   */
+  readinessScore        Float?
+  consistencyScore     Float?
+  volatilityScore      Float?
+  sustainabilityScore  Float?
+  inflationVulnerability Float?
+  riskScore           Float?
+  confidenceScore       Float?
 
   scenario Scenario @relation(fields: [scenarioId], references: [id])
-
   createdAt DateTime @default(now())
 }
 
@@ -200,11 +239,16 @@ model Recommendation {
 
   simulationId String?
   scenarioId   String?
-
   message String
   type    String
-
   confidenceScore Float?
+
+  /**
+   * ================= ML EXPLAINABILITY =================
+   */
+  featureImpacts Json?
+  explanation String?
+  engineType String?
 
   simulation Simulation? @relation(fields: [simulationId], references: [id])
   scenario   Scenario?   @relation(fields: [scenarioId], references: [id])
@@ -212,13 +256,49 @@ model Recommendation {
   createdAt DateTime @default(now())
 }
 
-model PasswordResetToken {
-  id String @id @default(cuid())
-
-  email String
-
-  token     String   @unique
-  expiresAt DateTime
-
+model StrategyComparison {
+  id         String @id @default(cuid())
+  userId       String
+  
+  /**
+   * ================= INPUTS =================
+   */
+  baseSimulationId String
+  strategiesCompared Json
+  bestStrategy String
+  worstStrategy String
+  
+  /**
+   * ================= COMPARISON RESULTS =================
+   */
+  averageRsiScore Float
+  bestRsiScore Float
+  worstRsiScore Float
+  spreadRsiScore Float
+  
+  averageProjectedSavings Float
+  bestProjectedSavings Float
+  worstProjectedSavings Float
+  spreadProjectedSavings Float
+  
   createdAt DateTime @default(now())
+}
+
+model MLModelVersion {
+  id         String @id @default(cuid())
+  version     String @unique
+  modelType   String
+  status      String
+  accuracyR2  Float?
+  accuracyMse Float?
+}
+
+model PasswordResetToken {
+id String @id @default(cuid())
+
+email String
+token     String   @unique
+expiresAt DateTime
+
+createdAt DateTime @default(now())
 }

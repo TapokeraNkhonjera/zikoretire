@@ -24,7 +24,7 @@ export default function AdminClientLayout({
         <AdminSidebar />
         <AdminHeader />
 
-        <main className="pt-16 pl-(--sidebar-width,16rem) p-6">
+        <main className="pt-16 pl-(--sidebar-width,16rem) p-6 min-w-0 overflow-x-auto lg:overflow-x-hidden">
           {children}
         </main>
       </SidebarProvider>

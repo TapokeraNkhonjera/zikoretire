@@ -155,14 +155,8 @@ export async function POST(req: Request) {
                 typeof ml?.prediction === "number" ? Number(ml.prediction) : null,
               mlReadinessPercentage:
                 typeof ml?.readiness_percentage === "number"
-                  ? Number(ml.readiness_percentage)
-                  : null,
-              mlFactorsCount: mlFactors.length,
-              mlExplanation:
-                typeof ml?.explanation === "string" ? ml.explanation : null,
-              mlAdvice:
-                typeof ml?.advice === "string" ? ml.advice : null,
-            },
+                  ? Number(ml.readiness_percentage) : null
+            }
           }
         }
       } else {

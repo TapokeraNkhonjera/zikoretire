@@ -7,6 +7,8 @@ export async function GET(req: Request) {
   try {
     const totalUsers = await prisma.user.count();
     const totalSimulations = await prisma.simulation.count();
+    const totalScenarios = await prisma.scenario.count();
+    const totalStrategyComparisons = await prisma.strategyComparison.count();
     
     // Active users: users updated in the last 24 hours
     const twentyFourHoursAgo = new Date();
@@ -31,6 +33,47 @@ export async function GET(req: Request) {
     const fallbackSimulations = await prisma.result.count({
       where: {
         confidenceScore: null,
+      },
+    });
+
+    // New ML outputs metrics
+    const mlReadinessScores = await prisma.result.count({
+      where: {
+        readinessScore: {
+          not: null,
+        },
+      },
+    });
+
+    const mlConsistencyScores = await prisma.result.count({
+      where: {
+        consistencyScore: {
+          not: null,
+        },
+      },
+    });
+
+    const mlVolatilityScores = await prisma.result.count({
+      where: {
+        volatilityScore: {
+          not: null,
+        },
+      },
+    });
+
+    const mlSustainabilityScores = await prisma.result.count({
+      where: {
+        sustainabilityScore: {
+          not: null,
+        },
+      },
+    });
+
+    const mlInflationVulnerabilityScores = await prisma.result.count({
+      where: {
+        inflationVulnerability: {
+          not: null,
+        },
       },
     });
 
@@ -90,11 +133,18 @@ export async function GET(req: Request) {
       data: {
         totalUsers,
         totalSimulations,
+        totalScenarios,
+        totalStrategyComparisons,
         activeUsers,
         mlOnline,
         mlPoweredSimulations,
         fallbackSimulations,
         averageModelConfidence: avgModelConfidence._avg.confidenceScore ?? null,
+        mlReadinessScores,
+        mlConsistencyScores,
+        mlVolatilityScores,
+        mlSustainabilityScores,
+        mlInflationVulnerabilityScores,
         activity,
       },
     });

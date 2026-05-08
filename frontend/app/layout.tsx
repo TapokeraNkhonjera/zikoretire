@@ -2,6 +2,8 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/toast";
+import CustomSessionProvider from "@/components/providers/SessionProvider";
 
 // Google Fonts
 const inter = Inter({
@@ -33,7 +35,11 @@ export default function RootLayout({
     >
       {/* suppressHydrationWarning prevents React warnings for client-only changes (e.g., extensions) */}
       <body className="flex flex-col min-h-full" suppressHydrationWarning>
-        {children}
+        <CustomSessionProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </CustomSessionProvider>
       </body>
     </html>
   );

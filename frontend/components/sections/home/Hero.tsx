@@ -1,8 +1,33 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
+
+interface PlatformStats {
+  totalUsers: number;
+  totalSavings: number;
+  accuracyRate: number;
+  uptimePercentage: number;
+}
 
 export default function Hero() {
+  const router = useRouter();
+  const [stats, setStats] = useState<PlatformStats>({
+    totalUsers: 0,
+    totalSavings: 0,
+    accuracyRate: 0,
+    uptimePercentage: 0
+  });
+
+  useEffect(() => {
+    // Fetch real stats from API
+    fetch('/api/stats/platform')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error('Failed to fetch stats:', err));
+  }, []);
   return (
     <section className="relative w-full px-6 overflow-hidden py-28 md:px-12 lg:px-20">
 
@@ -45,12 +70,23 @@ export default function Hero() {
           </p>
 
           <div className="flex gap-4">
-            <Button size="lg" className="shadow-lg shadow-primary/30">
+            <Button 
+              size="lg" 
+              className="shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:scale-105 transition-all duration-200"
+              onClick={() => router.push('/auth/signin')}
+            >
               Start Simulation
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
 
-            <Button variant="outline" size="lg">
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200"
+              onClick={() => router.push('/about')}
+            >
               Learn More
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
 
@@ -107,18 +143,18 @@ export default function Hero() {
             <div className="space-y-4">
 
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Projected Value</span>
-                <span className="font-semibold">MWK 45.2M</span>
+                <span className="text-muted-foreground">Active Users</span>
+                <span className="font-semibold">{stats.totalUsers.toLocaleString()}</span>
               </div>
 
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Monthly Income</span>
-                <span className="font-semibold">MWK 320,000</span>
+                <span className="text-muted-foreground">Total Savings</span>
+                <span className="font-semibold">MWK {(stats.totalSavings / 1000000).toFixed(1)}M</span>
               </div>
 
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Growth Type</span>
-                <span className="font-medium text-primary">Balanced</span>
+                <span className="text-muted-foreground">Accuracy</span>
+                <span className="font-medium text-primary">{stats.accuracyRate}%</span>
               </div>
 
             </div>
