@@ -91,6 +91,8 @@ export default function ScenarioPanel({
           currentSavings: Number(currentInputs.currentSavings || 0),
           inflationRate: Number(currentInputs.inflationRate || 0),
 
+          projectionStrategy: currentInputs.projectionStrategy,
+
           growthModel: currentInputs.growthModel,
           incomeType: currentInputs.incomeType,
           savingBehavior: currentInputs.savingBehavior,

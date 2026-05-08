@@ -9,6 +9,7 @@ import ProjectionForm from "@/components/sections/projection/ProjectionForm"
 import ProjectionResults, {
   ProjectionResult
 } from "@/components/sections/projection/ProjectionResults"
+import StrategyComparisonPanel from "@/components/sections/projection/StrategyComparisonPanel"
 
 import { ProjectionInputs } from "@/types/ProjectionInputs"
 
@@ -27,6 +28,8 @@ const defaultInputs: ProjectionInputs = {
   currentSavings: "1500000",
 
   monthlyContribution: "50000",
+
+  projectionStrategy: "balanced",
 
   incomeType: "stable",
   savingBehavior: "consistent",
@@ -104,6 +107,7 @@ export default function SimulationPage() {
               monthlyContribution: sim.monthlyContribution.toString(),
               currentSavings: sim.currentSavings?.toString() || "0",
               inflationRate: sim.inflationRate.toString(),
+              projectionStrategy: "balanced",
               growthModel: asGrowthModel(sim.growthModel),
               incomeType: asIncomeType(sim.incomeType),
               savingBehavior: asSavingBehavior(sim.savingBehavior),
@@ -225,6 +229,8 @@ export default function SimulationPage() {
 
           currentSavings: Number(inputs.currentSavings || 0),
           inflationRate: Number(inputs.inflationRate || 0),
+
+          projectionStrategy: inputs.projectionStrategy,
 
           growthModel: inputs.growthModel,
           incomeType: inputs.incomeType,
@@ -505,12 +511,19 @@ export default function SimulationPage() {
               Processing your form with ML and fail-safe checks...
             </div>
           ) : (
-            <ProjectionResults
-              results={results}
-              isDirty={isDirty}
-              onSave={handleSaveSimulation}
-              onAddScenario={handleAddScenario}
-            />
+            <div className="space-y-6">
+              <ProjectionResults
+                results={results}
+                isDirty={isDirty}
+                onSave={handleSaveSimulation}
+                onAddScenario={handleAddScenario}
+              />
+
+              <StrategyComparisonPanel
+                inputs={inputs}
+                baseRsiScore={results?.rsiScore ?? null}
+              />
+            </div>
           )}
 
         </div>

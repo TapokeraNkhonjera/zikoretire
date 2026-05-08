@@ -126,6 +126,59 @@ export default function ProjectionForm({
 </p>
       </div>
 
+      {/* ================= STRATEGY ================= */}
+      <div>
+        <div className="flex items-center mb-2">
+          <Label>Projection Strategy</Label>
+          <InfoTooltip
+            title="Projection Strategy"
+            description="Select a projection mode tailored to Malawi pension realities. The deterministic engine always runs; ML enhances scoring and transparency where available."
+          />
+        </div>
+
+        <select
+          value={inputs.projectionStrategy}
+          onChange={(e) =>
+            updateField(
+              "projectionStrategy",
+              e.target.value as ProjectionInputs["projectionStrategy"]
+            )
+          }
+          className="w-full h-12 px-3 text-sm border rounded-lg bg-background"
+        >
+          <option value="conservative">Conservative</option>
+          <option value="balanced">Balanced (Default)</option>
+          <option value="aggressive">Aggressive Growth</option>
+          <option value="informal">Informal Worker</option>
+          <option value="seasonal">Seasonal Income</option>
+          <option value="inflation_stress">Inflation Stress</option>
+          <option value="contribution_growth">Contribution Growth</option>
+          <option value="early_retirement">Early Retirement</option>
+          <option value="sustainability">Pension Sustainability</option>
+        </select>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          {inputs.projectionStrategy === "conservative" &&
+            "Lower growth, higher inflation sensitivity, safer stability."}
+          {inputs.projectionStrategy === "balanced" &&
+            "Moderate assumptions (current default behavior)."}
+          {inputs.projectionStrategy === "aggressive" &&
+            "Higher growth assumptions with increased risk/volatility."}
+          {inputs.projectionStrategy === "informal" &&
+            "Supports missed months and contribution consistency scoring."}
+          {inputs.projectionStrategy === "seasonal" &&
+            "Contributions fluctuate by season (peak vs weak months)."}
+          {inputs.projectionStrategy === "inflation_stress" &&
+            "Simulates high inflation shock and purchasing power erosion."}
+          {inputs.projectionStrategy === "contribution_growth" &&
+            "Simulates annual salary growth and rising contributions."}
+          {inputs.projectionStrategy === "early_retirement" &&
+            "Higher pressure: shorter accumulation and earlier retirement timeline."}
+          {inputs.projectionStrategy === "sustainability" &&
+            "Estimates how long retirement income may last after retirement."}
+        </p>
+      </div>
+
       {/* ================= SLIDERS ================= */}
       <div className="space-y-6">
 

@@ -7,6 +7,17 @@ export interface ProjectionInputs {
 
   monthlyContribution: string
 
+  projectionStrategy:
+    | "conservative"
+    | "balanced"
+    | "aggressive"
+    | "informal"
+    | "seasonal"
+    | "inflation_stress"
+    | "contribution_growth"
+    | "early_retirement"
+    | "sustainability"
+
   incomeType: "stable" | "flexible" | "seasonal"
   savingBehavior: "consistent" | "flexible" | "opportunistic"
 
