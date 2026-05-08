@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const MLBACKEND_URL = process.env.MLBACKEND_URL || "http://127.0.0.1:8000";
+
 export async function GET(req: Request) {
   try {
     const today = new Date();
@@ -16,6 +18,9 @@ export async function GET(req: Request) {
     const recentSimulations = await prisma.simulation.findMany({
       orderBy: { createdAt: "desc" },
       take: 20,
+      include: {
+        result: true,
+      },
     });
 
     // Fetch recent scenarios
@@ -44,12 +49,15 @@ export async function GET(req: Request) {
     // Map simulations to logs
     recentSimulations.forEach(s => {
       if (s.createdAt >= today) totalLogsToday++;
+      const mlUsed = typeof s.result?.confidenceScore === "number";
       logs.push({
         id: `sim-${s.id}`,
         timestamp: s.createdAt.toLocaleString(),
-        type: "Simulation",
-        message: `Retirement projection generated`,
-        status: "Success",
+        type: mlUsed ? "ML Simulation" : "Fallback Simulation",
+        message: mlUsed
+          ? `ML projection generated (${(s.result!.confidenceScore! * 100).toFixed(1)}% confidence)`
+          : "Projection generated using fallback engine",
+        status: mlUsed ? "Success" : "Warning",
         time: s.createdAt.getTime(),
       });
     });
@@ -67,23 +75,24 @@ export async function GET(req: Request) {
       });
     });
 
-    // Add some mocked system logs for realism
-    logs.push({
-      id: "sys-1",
-      timestamp: new Date(Date.now() - 3600000).toLocaleString(),
-      type: "System",
-      message: "Database backup completed",
-      status: "Success",
-      time: Date.now() - 3600000,
-    });
+    let mlOnline = false;
+    try {
+      const mlHealth = await fetch(`${MLBACKEND_URL}/api/health/ready`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      mlOnline = mlHealth.ok;
+    } catch {
+      mlOnline = false;
+    }
 
     logs.push({
-      id: "sys-2",
-      timestamp: new Date(Date.now() - 7200000).toLocaleString(),
-      type: "Warning",
-      message: "Temporary API latency spike",
-      status: "Warning",
-      time: Date.now() - 7200000,
+      id: "sys-1",
+      timestamp: new Date().toLocaleString(),
+      type: "ML Health",
+      message: mlOnline ? "ZikoML health check passed" : "ZikoML unavailable; fallback mode in effect",
+      status: mlOnline ? "Success" : "Warning",
+      time: Date.now(),
     });
 
     // Sort logs by time descending

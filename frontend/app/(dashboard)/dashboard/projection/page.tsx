@@ -40,6 +40,24 @@ const defaultInputs: ProjectionInputs = {
 
 /* ================= SAFE STORAGE ================= */
 
+const asGrowthModel = (value: string): ProjectionInputs["growthModel"] => {
+  const v = value.toLowerCase()
+  if (v === "stable" || v === "balanced" || v === "high") return v
+  return "balanced"
+}
+
+const asIncomeType = (value: string): ProjectionInputs["incomeType"] => {
+  const v = value.toLowerCase()
+  if (v === "stable" || v === "flexible" || v === "seasonal") return v
+  return "stable"
+}
+
+const asSavingBehavior = (value: string): ProjectionInputs["savingBehavior"] => {
+  const v = value.toLowerCase()
+  if (v === "consistent" || v === "flexible" || v === "opportunistic") return v
+  return "consistent"
+}
+
 const getStoredState = (userId?: string) => {
   if (typeof window === "undefined") return null
 
@@ -86,9 +104,9 @@ export default function SimulationPage() {
               monthlyContribution: sim.monthlyContribution.toString(),
               currentSavings: sim.currentSavings?.toString() || "0",
               inflationRate: sim.inflationRate.toString(),
-              growthModel: sim.growthModel.toLowerCase() as any,
-              incomeType: sim.incomeType.toLowerCase() as any,
-              savingBehavior: sim.savingBehavior.toLowerCase() as any,
+              growthModel: asGrowthModel(sim.growthModel),
+              incomeType: asIncomeType(sim.incomeType),
+              savingBehavior: asSavingBehavior(sim.savingBehavior),
               includeIrregular: sim.includeIrregular,
               extraContribution: sim.extraContribution?.toString() || ""
             }
@@ -133,6 +151,7 @@ export default function SimulationPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
+  const [mlOnline, setMlOnline] = useState<boolean | null>(null)
 
   /* ================= PERSIST ================= */
 
@@ -151,6 +170,29 @@ export default function SimulationPage() {
       JSON.stringify(payload)
     )
   }, [inputs, results, userId, status])
+
+  useEffect(() => {
+    let ignore = false
+
+    const checkMLStatus = async () => {
+      try {
+        const res = await fetch("/api/ml/status", { cache: "no-store" })
+        const data = await res.json()
+        if (!ignore) {
+          setMlOnline(Boolean(data?.online))
+        }
+      } catch {
+        if (!ignore) {
+          setMlOnline(false)
+        }
+      }
+    }
+
+    checkMLStatus()
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   /* ================= CALCULATE ================= */
 
@@ -424,6 +466,18 @@ export default function SimulationPage() {
           Simulate your pension growth
           and estimate future income.
         </p>
+      </div>
+
+      <div
+        className={`p-3 text-sm border rounded-md ${
+          mlOnline
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : "bg-amber-50 text-amber-700 border-amber-200"
+        }`}
+      >
+        {mlOnline
+          ? "ZikoML is online. You are using ML-powered retirement scoring."
+          : "ZikoML is currently offline or delayed. Safe fallback engine will be used automatically."}
       </div>
 
       {error && (

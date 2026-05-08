@@ -10,6 +10,7 @@ import {
 
 import ResultCard from "./ResultsCard"
 import RsiBar from "./RsiBar"
+import ModelConfidenceBadge from "@/components/sections/shared/ModelConfidenceBadge"
 
 import {
   BarChart,
@@ -37,6 +38,12 @@ export interface ProjectionMeta {
   mlWarnings?: string[]
   mlRisk?: string
   mlRequestId?: string | null
+  mlConfidence?: number | null
+  mlPrediction?: number | null
+  mlReadinessPercentage?: number | null
+  mlFactorsCount?: number
+  mlExplanation?: string | null
+  mlAdvice?: string | null
 }
 
 export interface ProjectionResult {
@@ -145,6 +152,7 @@ export default function ProjectionResults({
               <p className="text-sm font-semibold text-foreground">
                 Strategy Breakdown
               </p>
+              <ModelConfidenceBadge confidence={results.meta.mlConfidence} />
 
               <div className="grid grid-cols-2 gap-3 text-sm">
 
@@ -177,6 +185,52 @@ export default function ProjectionResults({
                 </div>
 
                 <div>
+                  <span className="text-muted-foreground">Engine:</span>
+                  <p className="font-medium">
+                    {results.meta.engine === "ml-v1" ? "ZikoML" : "Rule Fallback"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground">ML Status:</span>
+                  <p className="font-medium capitalize">
+                    {results.meta.mlStatus ?? "not_checked"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground">ML Confidence:</span>
+                  <p className="font-medium">
+                    {typeof results.meta.mlConfidence === "number"
+                      ? `${(results.meta.mlConfidence * 100).toFixed(1)}%`
+                      : "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground">ML Risk:</span>
+                  <p className="font-medium">
+                    {results.meta.mlRisk ?? "UNKNOWN"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground">ML Factors:</span>
+                  <p className="font-medium">
+                    {typeof results.meta.mlFactorsCount === "number"
+                      ? results.meta.mlFactorsCount
+                      : "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground">ML Request ID:</span>
+                  <p className="font-medium break-all">
+                    {results.meta.mlRequestId ?? "N/A"}
+                  </p>
+                </div>
+
+                <div>
                   <span className="text-muted-foreground">Adjusted Contribution:</span>
                   <p className="font-medium">
                     MWK {results.meta.adjustedContribution.toLocaleString()}
@@ -184,6 +238,13 @@ export default function ProjectionResults({
                 </div>
 
               </div>
+
+              {results.meta.mlExplanation && (
+                <div className="pt-2 text-sm">
+                  <p className="font-semibold text-foreground">ML Explanation</p>
+                  <p className="text-muted-foreground">{results.meta.mlExplanation}</p>
+                </div>
+              )}
 
             </div>
           )}
@@ -300,7 +361,7 @@ export default function ProjectionResults({
 
             <Button
               variant="outline"
-              onClick={onAddScenario}
+              onClick={() => onAddScenario()}
               className="h-11"
             >
               Add Scenario

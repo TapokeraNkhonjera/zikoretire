@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   Activity,
+  BrainCircuit,
   Home,
   LogOut,
 } from "lucide-react";
@@ -39,6 +40,11 @@ const navItems = [
     title: "System Logs",
     href: "/admin/dashboard/logs",
     icon: Activity,
+  },
+  {
+    title: "ML Center",
+    href: "/admin/dashboard/ml",
+    icon: BrainCircuit,
   },
 ];
 

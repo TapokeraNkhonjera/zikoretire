@@ -24,6 +24,7 @@ export default function AnalyticsPage() {
   const [simulations, setSimulations] = useState<AnalyticsData[]>([])
   const [selectedId, setSelectedId] = useState<string>("")
   const [loading, setLoading] = useState(true)
+  const [mlOnline, setMlOnline] = useState<boolean | null>(null)
 
   /* ================= FETCH REAL DATA ================= */
 
@@ -51,7 +52,10 @@ export default function AnalyticsPage() {
           result: {
             projectedValue?: number
             estimatedMonthlyIncome?: number
+            monthlyIncome?: number
             rsiScore?: number
+            riskScore?: number | null
+            confidenceScore?: number | null
           } | null
           scenarios?: {
             id: string
@@ -59,7 +63,10 @@ export default function AnalyticsPage() {
             result?: {
               projectedValue?: number
               estimatedMonthlyIncome?: number
+              monthlyIncome?: number
               rsiScore?: number
+              riskScore?: number | null
+              confidenceScore?: number | null
             } | null
           }[]
           recommendations?: {
@@ -77,10 +84,18 @@ export default function AnalyticsPage() {
               sim.result?.projectedValue ?? 0,
 
             monthlyRetirementIncome:
-              sim.result?.estimatedMonthlyIncome ?? 0,
+              sim.result?.estimatedMonthlyIncome ??
+              sim.result?.monthlyIncome ??
+              0,
 
             rsiScore:
-              sim.result?.rsiScore ?? 0
+              sim.result?.rsiScore ?? 0,
+
+            riskScore:
+              sim.result?.riskScore ?? null,
+
+            confidenceScore:
+              sim.result?.confidenceScore ?? null
           },
 
           scenarios: (sim.scenarios ?? []).map((s) => ({
@@ -90,10 +105,18 @@ export default function AnalyticsPage() {
                 s.result?.projectedValue ?? 0,
 
               monthlyRetirementIncome:
-                s.result?.estimatedMonthlyIncome ?? 0,
+                s.result?.estimatedMonthlyIncome ??
+                s.result?.monthlyIncome ??
+                0,
 
               rsiScore:
-                s.result?.rsiScore ?? 0
+                s.result?.rsiScore ?? 0,
+
+              riskScore:
+                s.result?.riskScore ?? null,
+
+              confidenceScore:
+                s.result?.confidenceScore ?? null
             }
           })),
 
@@ -119,6 +142,29 @@ export default function AnalyticsPage() {
     fetchData()
 
   }, [userId])
+
+  useEffect(() => {
+    let ignore = false
+
+    const checkMLStatus = async () => {
+      try {
+        const res = await fetch("/api/ml/status", { cache: "no-store" })
+        const data = await res.json()
+        if (!ignore) {
+          setMlOnline(Boolean(data?.online))
+        }
+      } catch {
+        if (!ignore) {
+          setMlOnline(false)
+        }
+      }
+    }
+
+    checkMLStatus()
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   /* ================= AUTO SELECT FROM HISTORY ================= */
 
@@ -153,6 +199,18 @@ export default function AnalyticsPage() {
         <p className="mt-1 text-muted-foreground">
           Analyze your simulations and compare different retirement strategies.
         </p>
+      </div>
+
+      <div
+        className={`p-3 text-sm border rounded-md ${
+          mlOnline
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : "bg-amber-50 text-amber-700 border-amber-200"
+        }`}
+      >
+        {mlOnline
+          ? "ZikoML is online for analytics-backed scoring."
+          : "ZikoML is currently unavailable. Analytics may include fallback-engine results."}
       </div>
 
       {/* LOADING */}

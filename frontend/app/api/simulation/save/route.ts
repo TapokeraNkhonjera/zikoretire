@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+function mapRiskToScore(mlRisk: string | undefined): number | null {
+  if (!mlRisk) return null
+  if (mlRisk === "LOW") return 0.2
+  if (mlRisk === "MEDIUM") return 0.5
+  if (mlRisk === "HIGH") return 0.8
+  return null
+}
+
 export async function POST(req: Request) {
 
   try {
@@ -146,6 +154,14 @@ const savedResult = await prisma.result.create({
 
     rsiScore:
       Number(results.rsiScore ?? 0),
+
+    riskScore:
+      mapRiskToScore(results?.meta?.mlRisk),
+
+    confidenceScore:
+      typeof results?.meta?.mlConfidence === "number"
+        ? Number(results.meta.mlConfidence)
+        : null,
 
     readinessLevel:
       results.rsiScore >= 100

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card"
+import ModelConfidenceBadge from "@/components/sections/shared/ModelConfidenceBadge"
 
 import { AnalyticsData } from "@/types/analytics"
 
@@ -20,11 +21,13 @@ export default function RsiAnalysis({ data }: Props) {
   const rows = [
     {
       name: "Base Plan",
-      rsi: data.result.rsiScore ?? 0
+      rsi: data.result.rsiScore ?? 0,
+      confidence: data.result.confidenceScore ?? null,
     },
     ...data.scenarios.map((s) => ({
       name: s.name,
-      rsi: s.result.rsiScore ?? 0
+      rsi: s.result.rsiScore ?? 0,
+      confidence: s.result.confidenceScore ?? null,
     }))
   ]
 
@@ -186,16 +189,19 @@ export default function RsiAnalysis({ data }: Props) {
 
         </div>
 
-        {/* ================= ML PLACEHOLDER ================= */}
-
         <div className="p-4 text-sm text-black border rounded-xl bg-muted/20 border-border/60">
-
-          No AI-powered recommendations available at the moment.
-
+          <p className="font-semibold">ML Confidence Transparency</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Advanced insights will appear here once the recommendation engine is connected.
+            Confidence shows model certainty when ML was used. Fallback runs display N/A.
           </p>
-
+          <div className="mt-3 space-y-1">
+            {rows.map((row) => (
+              <div key={row.name} className="flex items-center justify-between">
+                <p className="text-xs">{row.name}</p>
+                <ModelConfidenceBadge confidence={row.confidence} showLabel={false} />
+              </div>
+            ))}
+          </div>
         </div>
 
       </CardContent>

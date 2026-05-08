@@ -21,6 +21,10 @@ interface OverviewData {
   totalUsers: number;
   totalSimulations: number;
   activeUsers: number;
+  mlOnline: boolean;
+  mlPoweredSimulations: number;
+  fallbackSimulations: number;
+  averageModelConfidence: number | null;
   activity: {
     id: string;
     type: string;
@@ -136,11 +140,11 @@ export default function AdminOverview() {
             <ShieldCheck className="w-4 h-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-semibold text-green-600">
-              Operational
+            <div className={`text-lg font-semibold ${data?.mlOnline ? "text-green-600" : "text-amber-600"}`}>
+              {data?.mlOnline ? "ZikoML Online" : "Fallback Active"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              All services running
+              {data?.mlOnline ? "ML engine ready" : "ML engine unavailable"}
             </p>
           </CardContent>
         </Card>
@@ -157,16 +161,20 @@ export default function AdminOverview() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">API Response Time</span>
-              <span className="font-medium">~124 ms</span>
+              <span className="text-muted-foreground">ML-powered simulations</span>
+              <span className="font-medium">{data?.mlPoweredSimulations ?? 0}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Database Load</span>
-              <span className="font-medium">Normal</span>
+              <span className="text-muted-foreground">Fallback simulations</span>
+              <span className="font-medium">{data?.fallbackSimulations ?? 0}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Last Backup</span>
-              <span className="font-medium">2 hours ago</span>
+              <span className="text-muted-foreground">Average ML confidence</span>
+              <span className="font-medium">
+                {typeof data?.averageModelConfidence === "number"
+                  ? `${(data.averageModelConfidence * 100).toFixed(1)}%`
+                  : "N/A"}
+              </span>
             </div>
           </CardContent>
         </Card>

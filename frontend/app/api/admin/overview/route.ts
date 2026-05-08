@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const MLBACKEND_URL = process.env.MLBACKEND_URL || "http://127.0.0.1:8000";
+
 export async function GET(req: Request) {
   try {
     const totalUsers = await prisma.user.count();
@@ -17,6 +19,42 @@ export async function GET(req: Request) {
         },
       },
     });
+
+    const mlPoweredSimulations = await prisma.result.count({
+      where: {
+        confidenceScore: {
+          not: null,
+        },
+      },
+    });
+
+    const fallbackSimulations = await prisma.result.count({
+      where: {
+        confidenceScore: null,
+      },
+    });
+
+    const avgModelConfidence = await prisma.result.aggregate({
+      _avg: {
+        confidenceScore: true,
+      },
+      where: {
+        confidenceScore: {
+          not: null,
+        },
+      },
+    });
+
+    let mlOnline = false;
+    try {
+      const mlHealth = await fetch(`${MLBACKEND_URL}/api/health/ready`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      mlOnline = mlHealth.ok;
+    } catch {
+      mlOnline = false;
+    }
 
     // Recent activity: Combine recent users and recent simulations
     const recentUsers = await prisma.user.findMany({
@@ -53,6 +91,10 @@ export async function GET(req: Request) {
         totalUsers,
         totalSimulations,
         activeUsers,
+        mlOnline,
+        mlPoweredSimulations,
+        fallbackSimulations,
+        averageModelConfidence: avgModelConfidence._avg.confidenceScore ?? null,
         activity,
       },
     });

@@ -4,6 +4,8 @@ export interface AnalyticsScenario {
     projectedValue: number
     monthlyRetirementIncome?: number
     rsiScore: number
+    riskScore?: number | null
+    confidenceScore?: number | null
   }
 }
 
@@ -15,6 +17,8 @@ export interface AnalyticsData {
     projectedValue: number
     monthlyRetirementIncome?: number
     rsiScore: number
+    riskScore?: number | null
+    confidenceScore?: number | null
   }
 
   scenarios: AnalyticsScenario[]

@@ -55,7 +55,9 @@ const formatted = simulations.map((sim) => ({
         monthlyIncome: sim.result.estimatedMonthlyIncome, // ✅ FIX
         inflationAdjustedValue: sim.result.inflationAdjustedValue, // ✅ ADD
         rsiScore: sim.result.rsiScore,
-        readinessLevel: sim.result.readinessLevel
+        readinessLevel: sim.result.readinessLevel,
+        riskScore: sim.result.riskScore,
+        confidenceScore: sim.result.confidenceScore
       }
     : null,
 
@@ -69,7 +71,9 @@ const formatted = simulations.map((sim) => ({
           monthlyIncome: s.result.estimatedMonthlyIncome,
           inflationAdjustedValue: s.result.inflationAdjustedValue,
           rsiScore: s.result.rsiScore,
-          readinessLevel: s.result.readinessLevel
+          readinessLevel: s.result.readinessLevel,
+          riskScore: s.result.riskScore,
+          confidenceScore: s.result.confidenceScore
         }
       : null
   })),

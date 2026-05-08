@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card"
+import ModelConfidenceBadge from "@/components/sections/shared/ModelConfidenceBadge"
 
 import { AnalyticsData } from "@/types/analytics"
 
@@ -212,16 +213,18 @@ export default function RecommendationPanel({ data }: Props) {
           </div>
         )}
 
-        {/* ================= ML PLACEHOLDER ================= */}
-
         <div className="p-4 text-sm text-black border rounded-xl bg-muted/20 border-border/60">
-
-          No AI-powered recommendations available yet.
-
+          <p className="font-semibold">ZikoML Transparency</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Future updates will include personalized insights based on predictive models.
+            The current analytics view includes saved RSI outputs and any available ML confidence/risk signals.
           </p>
-
+          <div className="mt-2">
+            <ModelConfidenceBadge confidence={base.confidenceScore ?? null} />
+          </div>
+          <p className="text-xs">
+            Base risk score:{" "}
+            {typeof base.riskScore === "number" ? base.riskScore.toFixed(2) : "N/A"}
+          </p>
         </div>
 
       </CardContent>

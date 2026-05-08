@@ -224,6 +224,38 @@ Open:
 
 This ensures users still get results instead of hard failures.
 
+## ML Transparency in UI
+
+The frontend now exposes ML transparency so users know when ZikoML is active:
+
+- Projection and analytics pages show a live ZikoML status banner.
+- Result cards show engine source (`ZikoML` vs `Rule Fallback`).
+- ML confidence, risk, request ID, and explanation are shown when available.
+- If ML times out/unavailable, UI clearly labels fallback usage.
+- A reusable confidence badge is used across projection and analytics:
+  - High confidence: >= 80%
+  - Medium confidence: >= 60% and < 80%
+  - Low confidence: < 60%
+  - N/A: fallback or unavailable ML confidence
+
+This follows UX transparency rules: users can distinguish ML-powered output from fallback output.
+
+## Continuous Learning Data Collection
+
+As users run simulations, the system now records anonymous inference telemetry for future model improvement:
+
+- Source: `POST /api/simulation/run` (Next.js API)
+- Forwarded to: `MLBackend /api/telemetry/inference`
+- Stored as JSONL events in:
+  - `MLBackend/data/telemetry/inference_events.jsonl`
+
+Telemetry event includes:
+- input projection payload
+- mapped ML feature payload
+- engine metadata (`mlStatus`, warnings, confidence, risk, request ID)
+
+This enables iterative retraining with real usage patterns while preserving app resilience.
+
 ---
 
 # 🧠 Core Concepts

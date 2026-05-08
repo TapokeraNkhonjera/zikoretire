@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 const MLBACKEND_URL =
   process.env.MLBACKEND_URL || "http://127.0.0.1:8000"
 const MLBACKEND_TIMEOUT_MS = Number(process.env.MLBACKEND_TIMEOUT_MS || 8000)
+const TELEMETRY_TIMEOUT_MS = Number(process.env.ML_TELEMETRY_TIMEOUT_MS || 2000)
 
 type RunInput = {
   age: number
@@ -16,6 +17,8 @@ type RunInput = {
   savingBehavior: "consistent" | "flexible" | "opportunistic"
   lifestyle: "basic" | "moderate" | "comfortable"
 }
+
+type MLRisk = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN"
 
 function mapToMLPayload(input: RunInput) {
   const employmentTypeMap: Record<RunInput["incomeType"], number> = {
@@ -171,6 +174,7 @@ export async function POST(req: Request) {
 
     let response = buildRuleEngineResult(input)
     const mlPayload = mapToMLPayload(input)
+    let inboundRequestId: string | null = null
 
     try {
       const controller = new AbortController()
@@ -188,8 +192,13 @@ export async function POST(req: Request) {
 
       if (mlRes.ok) {
         const ml = await mlRes.json()
+        inboundRequestId = typeof ml?.request_id === "string" ? ml.request_id : null
         const mlScore = Number(ml?.readiness_percentage ?? 0)
         const mlWarnings = Array.isArray(ml?.warnings) ? ml.warnings : []
+        const mlFactors = Array.isArray(ml?.factors) ? ml.factors : []
+        const mlConfidence =
+          typeof ml?.confidence === "number" ? Number(ml.confidence) : null
+        const mlRisk: MLRisk = (ml?.risk as MLRisk) || "UNKNOWN"
         const fallbackToRuleEngine =
           ml?.status === "degraded" ||
           ml?.risk === "UNKNOWN" ||
@@ -203,8 +212,20 @@ export async function POST(req: Request) {
               engine: "rule-v2",
               mlStatus: ml?.status ?? "degraded",
               mlWarnings: [...mlWarnings, "ML_FALLBACK_RULE_ENGINE"],
-              mlRisk: ml?.risk ?? "UNKNOWN",
+              mlRisk,
               mlRequestId: ml?.request_id ?? null,
+              mlConfidence,
+              mlPrediction:
+                typeof ml?.prediction === "number" ? Number(ml.prediction) : null,
+              mlReadinessPercentage:
+                typeof ml?.readiness_percentage === "number"
+                  ? Number(ml.readiness_percentage)
+                  : null,
+              mlFactorsCount: mlFactors.length,
+              mlExplanation:
+                typeof ml?.explanation === "string" ? ml.explanation : null,
+              mlAdvice:
+                typeof ml?.advice === "string" ? ml.advice : null,
             },
           }
         } else {
@@ -216,8 +237,20 @@ export async function POST(req: Request) {
               engine: "ml-v1",
               mlStatus: ml?.status ?? "ok",
               mlWarnings,
-              mlRisk: ml?.risk ?? "UNKNOWN",
+              mlRisk,
               mlRequestId: ml?.request_id ?? null,
+              mlConfidence,
+              mlPrediction:
+                typeof ml?.prediction === "number" ? Number(ml.prediction) : null,
+              mlReadinessPercentage:
+                typeof ml?.readiness_percentage === "number"
+                  ? Number(ml.readiness_percentage)
+                  : null,
+              mlFactorsCount: mlFactors.length,
+              mlExplanation:
+                typeof ml?.explanation === "string" ? ml.explanation : null,
+              mlAdvice:
+                typeof ml?.advice === "string" ? ml.advice : null,
             },
           }
         }
@@ -231,6 +264,12 @@ export async function POST(req: Request) {
             mlWarnings: [`ML_HTTP_${mlRes.status}`, "ML_FALLBACK_RULE_ENGINE"],
             mlRisk: "UNKNOWN",
             mlRequestId: null,
+            mlConfidence: null,
+            mlPrediction: null,
+            mlReadinessPercentage: null,
+            mlFactorsCount: 0,
+            mlExplanation: null,
+            mlAdvice: null,
           },
         }
       }
@@ -245,8 +284,38 @@ export async function POST(req: Request) {
           mlWarnings: ["ML_UNAVAILABLE", "ML_FALLBACK_RULE_ENGINE"],
           mlRisk: "UNKNOWN",
           mlRequestId: null,
+          mlConfidence: null,
+          mlPrediction: null,
+          mlReadinessPercentage: null,
+          mlFactorsCount: 0,
+          mlExplanation: null,
+          mlAdvice: null,
         },
       }
+    }
+
+    // Capture inference telemetry for continuous model improvement.
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), TELEMETRY_TIMEOUT_MS)
+
+      await fetch(`${MLBACKEND_URL}/api/telemetry/inference`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          request_id: inboundRequestId,
+          source: "frontend-simulation-run",
+          input_payload: input,
+          ml_payload: mlPayload,
+          result_meta: response.meta,
+        }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+    } catch (telemetryError) {
+      console.warn("Failed to record ML telemetry event:", telemetryError)
     }
 
     console.log("📊 RUN OUTPUT:", response)
