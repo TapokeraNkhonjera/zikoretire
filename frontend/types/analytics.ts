@@ -2,7 +2,7 @@ export interface AnalyticsScenario {
   name: string
   result: {
     projectedValue: number
-    monthlyRetirementIncome?: number
+    monthlyRetirementIncome: number
     rsiScore: number
     riskScore?: number | null
     confidenceScore?: number | null
@@ -11,11 +11,11 @@ export interface AnalyticsScenario {
 
 export interface AnalyticsData {
   id: string
-  name?: string
+  name: string
 
   result: {
     projectedValue: number
-    monthlyRetirementIncome?: number
+    monthlyRetirementIncome: number
     rsiScore: number
     riskScore?: number | null
     confidenceScore?: number | null

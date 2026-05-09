@@ -17,7 +17,20 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true'
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
 
-    const where = {
+    // Get user's priority simulation
+    const prioritySimulation = await prisma.simulation.findFirst({
+      where: {
+        userId: session.user.id,
+        priority: true
+      },
+      select: { id: true }
+    })
+
+    const where: {
+      userId: string;
+      read?: boolean;
+      simulationId?: string;
+    } = {
       userId: session.user.id,
       ...(unreadOnly ? { read: false } : {})
     }
@@ -35,16 +48,28 @@ export async function GET(request: NextRequest) {
         linkUrl: true,
         linkText: true,
         createdAt: true,
-        readAt: true
+        readAt: true,
+        simulationId: true
       }
-    })
+    }) as any[];
+
+    // Sort to prioritize notifications from priority simulation
+    if (prioritySimulation) {
+      notifications.sort((a, b) => {
+        // Priority simulation notifications first
+        if (a.simulationId === prioritySimulation.id && b.simulationId !== prioritySimulation.id) return -1;
+        if (a.simulationId !== prioritySimulation.id && b.simulationId === prioritySimulation.id) return 1;
+        // Then by date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
 
     const unreadCount = await prisma.notification.count({
       where: {
         userId: session.user.id,
         read: false
       }
-    })
+    });
 
     return NextResponse.json({
       success: true,
@@ -74,9 +99,33 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { action, notificationId, markAllRead } = body
+    const { action, notificationId, markAllRead, notification } = body
 
-    if (action === 'markRead') {
+    if (action === 'create') {
+      // Create a new notification programmatically
+      if (!notification) {
+        return NextResponse.json(
+          { success: false, message: "Notification data is required" },
+          { status: 400 }
+        )
+      }
+
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority || 'medium',
+          simulationId: notification.simulationId || null,
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: "Notification created successfully"
+      })
+    } else if (action === 'markRead') {
       // Mark specific notification as read
       if (!notificationId) {
         return NextResponse.json(

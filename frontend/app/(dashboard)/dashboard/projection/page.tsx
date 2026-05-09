@@ -1,17 +1,18 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-
+import { useSession } from "next-auth/react"
+import { withSaveLock } from "@/utils/saveLock"
 import ProjectionForm from "@/components/sections/projection/ProjectionForm"
-
-import ProjectionResults, {
-  ProjectionResult
-} from "@/components/sections/projection/ProjectionResults"
-import StrategyComparisonPanel from "@/components/sections/projection/StrategyComparisonPanel"
-
+import ProjectionResults, { ProjectionResult } from "@/components/sections/projection/ProjectionResults"
+import ScenarioTabs from "@/components/sections/scenarios/ScenarioTabs"
+import ScenarioPanel from "@/components/sections/scenarios/ScenarioPanel"
+import NamingDialog from "@/components/ui/NamingDialog"
+import ComprehensiveNamingDialog from "@/components/ui/ComprehensiveNamingDialog"
+import { Button } from "@/components/ui/button"
 import { ProjectionInputs } from "@/types/ProjectionInputs"
+import { ScenarioItem } from "@/types/scenario"
 
 /* ================= STORAGE ================= */
 
@@ -129,6 +130,7 @@ export default function SimulationPage() {
 
             // Clean the URL so refresh doesn't trigger API fetch again
             window.history.replaceState(null, '', window.location.pathname)
+            setCurrentSimulationId(loadId)
           }
         })
         .catch(console.error)
@@ -156,6 +158,26 @@ export default function SimulationPage() {
   const [error, setError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [mlOnline, setMlOnline] = useState<boolean | null>(null)
+  
+  // Scenario management
+  const [active, setActive] = useState<string>("base")
+  const [scenarios, setScenarios] = useState<ScenarioItem[]>([])
+  const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null)
+
+  // Naming dialog state
+  const [namingDialogOpen, setNamingDialogOpen] = useState(false)
+  const [namingDialogTitle, setNamingDialogTitle] = useState("")
+  const [namingDialogDescription, setNamingDialogDescription] = useState("")
+  const [namingDialogDefaultName, setNamingDialogDefaultName] = useState("")
+  const [namingDialogCallback, setNamingDialogCallback] = useState<((name: string) => void) | null>(null)
+
+  // Comprehensive naming dialog state
+  const [comprehensiveNamingOpen, setComprehensiveNamingOpen] = useState(false)
+  const [comprehensiveNamingCallback, setComprehensiveNamingCallback] = useState<((simName: string, scenarioNames: Record<string, string>) => void) | null>(null)
+  const isSavingRef = useRef(false)
+  
+  // Global save lock - shared across all save operations
+  const globalSaveLockRef = useRef(false)
 
   /* ================= PERSIST ================= */
 
@@ -302,248 +324,101 @@ export default function SimulationPage() {
     setIsDirty(false)
 
     lastCalculatedInputs.current = null
+    setCurrentSimulationId(null)
+    setScenarios([])
+    setActive("base")
 
     sessionStorage.removeItem(getStorageKey(userId))
   }
 
   /* ================= SAVE ================= */
 
-  const handleSaveSimulation =
-    async (resultData: ProjectionResult, forceSave = false) => {
-
-    const dataToSave = lastCalculatedInputs.current || inputs
-
-    if (!dataToSave.currentAge || !dataToSave.retirementAge) {
-      alert("Missing age details. Please fill out the form and run a projection first.")
-      return
-    }
-
-    try {
-
-      if (!userId) return
-
-      const res = await fetch(
-        "/api/simulation/save",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            userId,
-
-            age:
-              Number(dataToSave.currentAge),
-
-            retirementAge:
-              Number(dataToSave.retirementAge),
-
-            monthlyIncome:
-              Number(dataToSave.monthlyIncome),
-
-            monthlyContribution:
-              Number(dataToSave.monthlyContribution),
-
-            currentSavings:
-              Number(dataToSave.currentSavings || 0),
-
-            inflationRate:
-              Number(dataToSave.inflationRate || 0),
-
-            lifestyle: "moderate",
-
-            growthModel:
-              dataToSave.growthModel,
-
-            incomeType:
-              dataToSave.incomeType,
-
-            savingBehavior:
-              dataToSave.savingBehavior,
-
-            results: resultData,
-            forceSave
-          })
-
-        }
-      )
-
-      const data = await res.json()
-
-      if (!data.success) {
-        if (data.isDuplicate) {
-          const confirmSave = window.confirm(data.message + "\n\nDo you want to save it anyway?");
-          if (confirmSave) {
-            handleSaveSimulation(resultData, true);
-          }
-          return;
-        }
-        throw new Error(data.message)
-      }
-
-      alert("Simulation saved!")
-
-    } catch (err) {
-
-      console.error(err)
-
-      alert("Failed to save simulation")
-
-    }
-
-  }
-
-  const handleAddScenario = async (forceSave = false) => {
+  const handleAddScenario = async () => {
     if (!results) {
-      alert("Please run a simulation first")
+      alert("Please run a base simulation first before creating scenarios.")
       return
     }
 
-    const dataToSave = lastCalculatedInputs.current || inputs
-
-    if (!dataToSave.currentAge || !dataToSave.retirementAge) {
-      alert("Missing age details. Please fill out the form and run a projection first.")
-      return
-    }
-
-    try {
-      if (!userId) return
-
-      setLoading(true)
-
-      // First, get the current simulation ID to link scenario to it
-      const simulationRes = await fetch("/api/simulation/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          age: Number(dataToSave.currentAge),
-          retirementAge: Number(dataToSave.retirementAge),
-          monthlyIncome: Number(dataToSave.monthlyIncome),
-          monthlyContribution: Number(dataToSave.monthlyContribution),
-          currentSavings: Number(dataToSave.currentSavings || 0),
-          inflationRate: Number(dataToSave.inflationRate || 0),
-          lifestyle: "moderate",
-          growthModel: dataToSave.growthModel,
-          incomeType: dataToSave.incomeType,
-          savingBehavior: dataToSave.savingBehavior,
-          results: results,
-          forceSave
-        })
-      })
-
-      const simulationData = await simulationRes.json()
-
-      if (!simulationData.success) {
-        if (simulationData.isDuplicate) {
-          // If simulation is duplicate, ask user if they want to create scenario anyway
-          const confirmScenario = window.confirm(
-            "A simulation with similar results already exists. Would you like to create a scenario from your current projection instead?\n\nThis will allow you to compare different strategies without creating duplicate simulations."
-          );
-          if (confirmScenario) {
-            // Try to get existing simulation ID or use force save
-            const forcedSimulationRes = await fetch("/api/simulation/save", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId,
-                age: Number(dataToSave.currentAge),
-                retirementAge: Number(dataToSave.retirementAge),
-                monthlyIncome: Number(dataToSave.monthlyIncome),
-                monthlyContribution: Number(dataToSave.monthlyContribution),
-                currentSavings: Number(dataToSave.currentSavings || 0),
-                inflationRate: Number(dataToSave.inflationRate || 0),
-                lifestyle: "moderate",
-                growthModel: dataToSave.growthModel,
-                incomeType: dataToSave.incomeType,
-                savingBehavior: dataToSave.savingBehavior,
-                results: results,
-                forceSave: true
-              })
-            })
-            
-            const forcedSimulationData = await forcedSimulationRes.json()
-            if (forcedSimulationData.success) {
-              // Now create scenario linked to this simulation
-              await createScenarioFromSimulation(forcedSimulationData.data.simulationId, dataToSave, results)
-            } else {
-              throw new Error(forcedSimulationData.message || "Failed to save simulation for scenario")
-            }
-          }
-          return
-        }
-        throw new Error(simulationData.message)
-      }
-
-      // Create scenario linked to the new simulation
-      await createScenarioFromSimulation(simulationData.data.simulationId, dataToSave, results)
-
-    } catch (err) {
-      console.error(err)
-      alert("Failed to create scenario")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const createScenarioFromSimulation = async (simulationId: string, dataToSave: any, results: any) => {
-    const scenarioName = prompt("Enter a name for your scenario:", `${dataToSave.projectionStrategy} Strategy Scenario`)
+    const MAX_SCENARIOS = 3
     
-    if (!scenarioName) {
-      alert("Scenario name is required")
+    if (scenarios.length >= MAX_SCENARIOS) {
+      alert("You can only create up to 3 scenarios to keep things organized.")
       return
     }
 
-    const res = await fetch("/api/simulation/scenario/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        simulationId,
-        name: scenarioName,
-        overrides: {
-          currentAge: dataToSave.currentAge,
-          retirementAge: dataToSave.retirementAge,
-          monthlyIncome: dataToSave.monthlyIncome,
-          monthlyContribution: dataToSave.monthlyContribution,
-          currentSavings: dataToSave.currentSavings,
-          inflationRate: dataToSave.inflationRate,
-          growthModel: dataToSave.growthModel,
-          incomeType: dataToSave.incomeType,
-          savingBehavior: dataToSave.savingBehavior
-        },
-        results
-      })
-    })
+    const newScenario: ScenarioItem = {
+      id: crypto.randomUUID(),
+      name: `Scenario ${scenarios.length + 1}`,
+      inputs: { ...inputs }, // Clone base inputs
+      results: null
+    }
 
-    const data = await res.json()
+    setScenarios(prev => [...prev, newScenario])
+    setActive(newScenario.id)
+  }
 
-    if (data.success) {
-      alert(`Scenario "${scenarioName}" created successfully!`)
-      router.push(`/dashboard/simulation/${simulationId}`)
-    } else {
-      throw new Error(data.message || "Failed to save scenario")
+  const handleDeleteScenario = (scenarioId: string) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this scenario?\n\nThis action cannot be undone."
+    );
+
+    if (confirmDelete) {
+      setScenarios(prev => prev.filter(s => s.id !== scenarioId));
+
+      // If we deleted the active scenario, switch to base
+      if (active === scenarioId) {
+        setActive("base");
+      }
     }
   }
 
+  const handleRenameScenario = (scenarioId: string, newName: string) => {
+    setScenarios(prev => prev.map(s => s.id === scenarioId ? { ...s, name: newName } : s));
+  }
+
+  const showNamingDialog = (
+    title: string,
+    description: string,
+    defaultName: string,
+    callback: (name: string) => void
+  ) => {
+    setNamingDialogTitle(title)
+    setNamingDialogDescription(description)
+    setNamingDialogDefaultName(defaultName)
+    setNamingDialogCallback(() => callback)
+    setNamingDialogOpen(true)
+  }
+
+  const generateDefaultName = (type: "base" | "scenario", index: number = 0): string => {
+    const date = new Date().toLocaleDateString()
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (type === "base") {
+      return `Base Simulation - ${date} ${time}`
+    } else {
+      return `Scenario ${index + 1} - ${date} ${time}`
+    }
+  }
+
+  
   /* ================= UI ================= */
 
   return (
 
     <div className="flex flex-col gap-6 pt-12 lg:gap-8 max-w-7xl">
 
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">
-          Retirement Projection
-        </h2>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">
+            Retirement Projection
+          </h2>
 
-        <p className="mt-1 text-muted-foreground">
-          Simulate your pension growth
-          and estimate future income.
-        </p>
+          <p className="mt-1 text-muted-foreground">
+            Simulate your pension growth
+            and estimate future income.
+          </p>
+        </div>
+        
+        <Button variant="outline" onClick={handleReset}>Start New Simulation</Button>
       </div>
 
       <div
@@ -564,43 +439,192 @@ export default function SimulationPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* ================= SCENARIO TABS ================= */}
+      <ScenarioTabs
+        scenarios={scenarios}
+        active={active}
+        onChange={setActive}
+        onAdd={handleAddScenario}
+        onDelete={handleDeleteScenario}
+        onRename={handleRenameScenario}
+        canDelete={!currentSimulationId}
+      />
 
-        <div className="p-6 border bg-card rounded-2xl">
-          <ProjectionForm
-            inputs={inputs}
-            setInputs={setInputs}
-            onCalculate={handleCalculate}
-            onReset={handleReset}
-            isLoading={loading}
-          />
-        </div>
+      {/* ================= CONTENT PANEL ================= */}
+      <ScenarioPanel
+        isBase={active === "base"}
+        hasScenarios={scenarios.length > 0}
+        baseInputs={inputs}
+        scenario={active === "base" ? null : scenarios.find(s => s.id === active) || null}
+        onChange={(id, data) => {
+          setScenarios(prev => prev.map(s => s.id === id ? { ...s, inputs: data } : s))
+        }}
+        onUpdateResult={(id, result) => {
+          setScenarios(prev => prev.map(s => s.id === id ? { ...s, results: result } : s))
+        }}
+        onBaseInputChange={(data) => {
+          setInputs(data)
+        }}
+        onBaseResultUpdate={(result: ProjectionResult) => {
+          setResults(result)
+        }}
+        onSave={async () => {
+          // Check if we have results to save
+          console.log("[SAVE TRACE] onSave called, active:", active)
+          const hasResults = active === "base" ? results : scenarios.find(s => s.id === active)?.results
 
-        <div className="p-6 border bg-card rounded-2xl">
+          if (!hasResults) {
+            alert("Please run a simulation first before saving.")
+            return
+          }
 
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              Processing your form with ML and fail-safe checks...
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <ProjectionResults
-                results={results}
-                isDirty={isDirty}
-                onSave={handleSaveSimulation}
-                onAddScenario={handleAddScenario}
-              />
+          setComprehensiveNamingCallback(() => async (simName: string, scenarioNames: Record<string, string>) => {
+            const doSave = async (force: boolean) => {
+              console.log("[SAVE TRACE] Callback executing, simName:", simName, "type:", typeof simName)
+              console.log("[SAVE TRACE] scenarioNames:", scenarioNames)
+              console.log("[SAVE FLOW] Naming dialog confirmed, starting save...")
+              
+              // Prevent double execution with global lock
+              if (isSavingRef.current || globalSaveLockRef.current) {
+                console.log("[SAVE TRACE] Blocked - already saving, isSavingRef:", isSavingRef.current, "global:", globalSaveLockRef.current)
+                return
+              }
+              isSavingRef.current = true
+              globalSaveLockRef.current = true
+              
+              const dataToSave = lastCalculatedInputs.current || inputs
 
-              <StrategyComparisonPanel
-                inputs={inputs}
-                baseRsiScore={results?.rsiScore ?? null}
-              />
-            </div>
-          )}
+              if (!dataToSave.currentAge || !dataToSave.retirementAge) {
+                alert("Missing age details. Please fill out the form and run a projection first.")
+                isSavingRef.current = false
+                globalSaveLockRef.current = false
+                return
+              }
 
-        </div>
+              if (!results) {
+                alert("Please run a simulation first before saving.")
+                isSavingRef.current = false
+                globalSaveLockRef.current = false
+                return
+              }
 
-      </div>
+              if (!userId) {
+                alert("You must be logged in to save simulations.")
+                isSavingRef.current = false
+                globalSaveLockRef.current = false
+                return
+              }
+
+              try {
+                // Use user-provided names directly (validation in dialog ensures they're not empty)
+                if (!simName || typeof simName !== 'string') {
+                  console.error("[SAVE ERROR] simName is invalid:", simName)
+                  alert("Invalid simulation name provided. Please try again.")
+                  isSavingRef.current = false
+                  globalSaveLockRef.current = false
+                  return
+                }
+                const simulationName = simName.trim()
+
+                // Update scenario names with user-provided names or defaults if empty
+                const updatedScenarios = scenarios.map((scenario, index) => ({
+                  ...scenario,
+                  name: (scenarioNames[scenario.id] && typeof scenarioNames[scenario.id] === 'string' && scenarioNames[scenario.id].trim() !== "") 
+                    ? scenarioNames[scenario.id].trim() 
+                    : generateDefaultName("scenario", index)
+                }))
+
+                // Flatten the data structure to match API expectations
+                console.log("[SAVE FLOW] Sending API request [PROJECTION PAGE]...")
+                let res;
+                try {
+                  res = await withSaveLock(async () => {
+                  const response = await fetch("/api/simulation/save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      userId,
+                      name: simulationName,
+                      age: Number(dataToSave.currentAge),
+                      retirementAge: Number(dataToSave.retirementAge),
+                      monthlyIncome: Number(dataToSave.monthlyIncome),
+                      monthlyContribution: Number(dataToSave.monthlyContribution),
+                      currentSavings: Number(dataToSave.currentSavings || 0),
+                      inflationRate: Number(dataToSave.inflationRate || 0),
+                      growthModel: dataToSave.growthModel,
+                      incomeType: dataToSave.incomeType,
+                      savingBehavior: dataToSave.savingBehavior,
+                      includeIrregular: dataToSave.includeIrregular || false,
+                      extraContribution: dataToSave.extraContribution || "",
+                      lifestyle: "moderate",
+                      results: results,
+                      scenarios: updatedScenarios,
+                      forceSave: force
+                    })
+                  });
+                  return response;
+                });
+                } catch (error) {
+                  console.log("[SAVE FLOW] Save blocked by global lock (expected behavior)")
+                  // Early return if save is blocked by global lock
+                  isSavingRef.current = false
+                  globalSaveLockRef.current = false
+                  return;
+                }
+
+                const data = await res.json()
+
+                if (!data.success) {
+                  if (data.isDuplicate) {
+                    isSavingRef.current = false
+                    globalSaveLockRef.current = false
+                    const confirmSave = window.confirm(data.message + "\n\nDo you want to save it anyway?");
+                    if (confirmSave) {
+                      // Retry save
+                      doSave(true);
+                    }
+                    return;
+                  }
+                  throw new Error(data.message)
+                }
+
+                alert(`"${simulationName}" saved successfully with ${updatedScenarios.length} scenario(s)!`)
+                console.log("[SAVE FLOW] Save completed successfully [PROJECTION PAGE]")
+                handleReset()
+
+              } catch (err) {
+                console.error(err)
+                alert("Failed to save simulation")
+              } finally {
+                // Reset both saving locks
+                isSavingRef.current = false
+                globalSaveLockRef.current = false
+              }
+            }
+            doSave(false);
+          })
+
+          // Open naming dialog immediately after setting the callback
+          setComprehensiveNamingOpen(true)
+        }}
+      />
+
+      {/* Comprehensive Naming Dialog */}
+      <ComprehensiveNamingDialog
+        isOpen={comprehensiveNamingOpen}
+        onClose={() => setComprehensiveNamingOpen(false)}
+        onConfirm={(simName, scenarioNames) => {
+          console.log("[SAVE TRACE] Dialog onConfirm called with:", { simName, scenarioNames })
+          if (comprehensiveNamingCallback) {
+            console.log("[SAVE TRACE] Calling comprehensiveNamingCallback")
+            comprehensiveNamingCallback(simName, scenarioNames)
+          } else {
+            console.log("[SAVE TRACE] No callback found!")
+          }
+        }}
+        defaultSimulationName={generateDefaultName("base")}
+        scenarios={scenarios}
+      />
 
     </div>
 

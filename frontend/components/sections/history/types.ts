@@ -12,6 +12,7 @@ export interface HistoryResult {
 export interface HistorySimulation {
   id: string
   createdAt: string
+  priority: boolean
 
   monthlyIncome: number
   incomeType: string

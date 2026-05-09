@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { NotificationService } from "@/lib/notificationService"
 
 function mapRiskToScore(mlRisk: string | undefined): number | null {
   if (!mlRisk) return null

@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(req: Request) {
-
   try {
-
-    const data = await req.json();
-
+    const data = await req.json()
     const {
       age,
       retirementAge,
@@ -13,14 +13,48 @@ export async function POST(req: Request) {
       monthlyContribution,
       currentSavings,
       inflationRate,
+      growthModel,
+      incomeType,
+      savingBehavior,
+      includeIrregular,
+      extraContribution,
       lifestyle,
-    } = data;
+      name,
+    } = data
+
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user?.id) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
+    // Create simulation with name
+    const simulation = await prisma.simulation.create({
+      data: {
+        userId: session.user.id,
+        age,
+        retirementAge,
+        monthlyIncome,
+        monthlyContribution,
+        currentSavings,
+        inflationRate,
+        growthModel,
+        incomeType,
+        savingBehavior,
+        includeIrregular,
+        extraContribution,
+        lifestyle,
+        name: name || `Retirement Planning ${new Date().getFullYear()}`,
+      },
+    })
 
     // Years to retirement
     const yearsToRetirement =
       retirementAge - age;
 
-console.log("Incoming Data:", data);
+    console.log("Incoming Data:", data);
 
     // Monthly investment return (assumed 8%)
     const annualReturnRate = 0.08;
@@ -57,12 +91,12 @@ console.log("Incoming Data:", data);
     const inflationDecimal =
       inflationRate / 100;
 
-const inflationAdjustedSavings =
-  estimatedSavings *
-  Math.pow(
-    1 - inflationDecimal,
-    yearsToRetirement
-  );
+    const inflationAdjustedSavings =
+      estimatedSavings *
+      Math.pow(
+        1 - inflationDecimal,
+        yearsToRetirement
+      );
 
     // Lifestyle multiplier
     let lifestyleFactor = 1;

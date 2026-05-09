@@ -36,7 +36,12 @@ console.log("USER ID:", userId)
       })
     }
 
-    const latest = simulations[0]
+    // Prioritize main simulation (priority = true), fall back to latest
+    const prioritySimulation = simulations.find(s => s.priority === true)
+    const latest = prioritySimulation || simulations[0]
+    
+    // Log which simulation is being used for dashboard
+    console.log(`Dashboard using ${prioritySimulation ? 'priority' : 'latest'} simulation for user ${userId}:`, latest.id)
 
     /* ================= STATS ================= */
 

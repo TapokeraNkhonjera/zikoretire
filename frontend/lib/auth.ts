@@ -65,6 +65,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.image,
 
           // ⭐ REQUIRED
           role: user.role,
@@ -94,10 +95,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
 
       if (user) {
-
         token.id = user.id;
         token.role = user.role;
-
+        token.image = user.image;
       }
 
       return token;
@@ -108,6 +108,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id;
         session.user.role = token.role as "ADMIN" | "USER";
+        session.user.image = token.image as string | null;
       }
 
       return session;

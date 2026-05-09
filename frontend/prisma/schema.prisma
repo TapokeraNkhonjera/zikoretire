@@ -14,10 +14,12 @@ enum Role {
 model Notification {
   id String @id @default(cuid())
   userId String
+  simulationId String? // Optional link to specific simulation
   
   title String
   message String
   type String // info, success, warning, error, admin
+  priority String @default("medium") // low, medium, high
   
   read Boolean @default(false)
   
@@ -33,6 +35,7 @@ model Notification {
   readAt DateTime?
   
   user User @relation(fields: [userId], references: [id])
+  simulation Simulation? @relation(fields: [simulationId], references: [id])
 }
 
 enum ScenarioType {
@@ -80,6 +83,7 @@ model User {
   simulations Simulation[]
   scenarios   Scenario[]
   notifications Notification[]
+  mlLearningData MLLearningData[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -88,6 +92,7 @@ model User {
 model Simulation {
   id     String @id @default(cuid())
   userId String
+  name   String // User-defined name for better organization and searching
 
   /**
    * ================= CORE AGE DATA =================
@@ -120,6 +125,12 @@ model Simulation {
   lifestyle String
 
   /**
+   * ================= PRIORITY =================
+   */
+
+  priority Boolean @default(false) // true = main simulation, false = test/analytical
+
+  /**
    * ================= RELATIONS =================
    */
 
@@ -128,6 +139,7 @@ model Simulation {
   result          Result?
   recommendations Recommendation[]
   scenarios       Scenario[]
+  notifications   Notification[]
 
   createdAt DateTime @default(now())
 }
@@ -171,7 +183,7 @@ model Scenario {
   userId       String
   simulationId String
 
-  name         String
+  name         String // User-defined name for better identification
   scenarioType ScenarioType?
 
   /**
@@ -301,4 +313,22 @@ token     String   @unique
 expiresAt DateTime
 
 createdAt DateTime @default(now())
+}
+
+model MLLearningData {
+  id String @id @default(cuid())
+  userId String
+  
+  type String // 'comparison', 'scenario_analysis', 'feedback', 'interaction'
+  data Json // Comparison data, scenario data, etc.
+  userInteractions Json? // Click patterns, time spent, etc.
+  context Json? // User context, session info, etc.
+  
+  user User @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }

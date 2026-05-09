@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { cn } from "@/lib/utils";
 
 import AppSidebar from "../../components/sections/dashboard/sidebar";
 import Header from "../../components/sections/dashboard/header";
@@ -14,23 +15,22 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+/** Inner shell — must live inside SidebarProvider to call useSidebar */
 function LayoutWrapper({ children }: { children: ReactNode }) {
-  const { state } = useSidebar();
-
-  const mainMarginLeft = state === "expanded" ? "16rem" : "5rem";
+  const { open } = useSidebar();
 
   return (
-    <div
-      className="relative flex flex-col min-h-screen transition-all duration-200 ease-linear bg-background"
-      style={{ marginLeft: mainMarginLeft }}
+    <main
+      className={cn(
+        "min-h-screen pt-16 px-4 sm:px-6 py-6",
+        "transition-all duration-300",
+        // Mobile: no left offset (sidebar is overlay)
+        // Desktop: offset matches sidebar width
+        open ? "lg:pl-[calc(16rem+1.5rem)]" : "lg:pl-[calc(5rem+1.5rem)]"
+      )}
     >
-      <Header />
-      <div className="relative flex-1 flex flex-col lg:flex-row">
-        <main className="relative z-10 flex-1 pt-20 p-6 min-w-0 overflow-x-auto lg:overflow-x-hidden">
-          {children}
-        </main>
-      </div>
-    </div>
+      {children}
+    </main>
   );
 }
 
@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }: LayoutProps) {
         <TooltipProvider>
           <SidebarProvider defaultOpen>
             <AppSidebar />
+            <Header />
             <LayoutWrapper>{children}</LayoutWrapper>
           </SidebarProvider>
         </TooltipProvider>

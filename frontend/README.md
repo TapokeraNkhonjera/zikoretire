@@ -146,7 +146,7 @@ This will:
 npx prisma db seed
 ```
 
-This creates default users for testing.
+This creates comprehensive test data including users, simulations, results, and notifications.
 
 ---
 
@@ -159,12 +159,55 @@ Admin:
 email: admin@zikoretire.com
 password: password123
 
-User:
-email: user@zikoretire.com
+Regular Users:
+email: unandi@example.com
+password: password123
+
+email: tapo@example.com
+password: password123
+
+email: banda.phiri@example.com
+password: password123
+
+email: chisomo.tembo@example.com
+password: password123
+
+email: mphatso.gama@example.com
+password: password123
+
+email: aisha.kaunda@example.com
+password: password123
+
+email: kondwani.banda@example.com
 password: password123
 ```
 
-*(Update these in `prisma/seed.ts` if needed)*
+## 📊 Seed Script Data Population
+
+The seed script (`prisma/seed.ts`) creates realistic test data based on ML training patterns:
+
+### Data Created:
+- **8 Users**: 1 admin + 7 regular users with Malawi names
+- **7 Simulations**: Each with realistic retirement profiles based on ML data
+- **7 Results**: ML-based projections with readiness scores and financial metrics
+- **~105 Notifications**: 15 notifications per user with various types
+
+### Realistic Profiles Include:
+- Age ranges: 29-58 years
+- Retirement ages: 60-70 years
+- Monthly incomes: MWK 53,706 - MWK 237,692
+- Worker types: informal, seasonal
+- Job categories: market_vendor, artisan, casual_labor, tourism, small_business, seasonal_trade
+- ML metrics: readiness scores, consistency, volatility, sustainability scores
+
+### Notification Types:
+- Contribution reminders
+- Savings milestones
+- Market updates
+- Retirement tips
+- Account summaries
+
+*(Update profiles and users in `prisma/seed.ts` if needed)*
 
 ---
 

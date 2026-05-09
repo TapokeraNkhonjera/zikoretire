@@ -1,9 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import HistoryHeader from "./HistoryHeader"
 import HistoryStats from "./HistoryStats"
 import HistoryTable from "./HistoryTable"
 import ExportInfoCard from "./HistoryExportCard"
+import { usePriorityUpdates } from "@/hooks/usePriorityUpdates"
 
 import {
   HistorySimulation
@@ -14,6 +16,17 @@ export default function HistoryClient({
 }: {
   simulations: HistorySimulation[]
 }) {
+
+  const { lastPriorityChange } = usePriorityUpdates()
+
+  // Listen for priority changes and update local state
+  useEffect(() => {
+    if (lastPriorityChange) {
+      console.log("HistoryClient: Priority changed, updating UI:", lastPriorityChange)
+      // Could trigger a re-render or state update here if needed
+      window.location.reload() // Simple refresh for now
+    }
+  }, [lastPriorityChange])
 
   function handlePDF() {
     // Generate PDF content

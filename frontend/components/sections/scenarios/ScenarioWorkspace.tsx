@@ -35,6 +35,7 @@ export default function ScenarioWorkspace({
   const [active, setActive] = useState<string>("base")
 
   const [scenarios, setScenarios] = useState<ScenarioItem[]>([])
+  const [localResults, setLocalResults] = useState<ProjectionResult | null>(null)
 
   /* ================= ADD SCENARIO ================= */
 
@@ -104,13 +105,66 @@ export default function ScenarioWorkspace({
 
   const handleSaveScenario = async () => {
     if (active === "base") {
-      alert("Please use the main Projection page to update the base simulation.")
+      // For base simulation, show confirmation dialog
+      const confirmSave = window.confirm(
+        "Would you like to save changes to the base simulation?\n\n" +
+        "Click 'OK' to save the base simulation, or 'Cancel' to go back and add scenarios instead."
+      )
+      
+      if (!confirmSave) {
+        // User cancelled - redirect to add scenario
+        handleAddScenario()
+        return
+      }
+      
+      // User confirmed - save base simulation
+      if (!localResults) {
+        alert("Please run the simulation first before saving.")
+        return
+      }
+
+      if (!userId) {
+        alert("Please log in to save simulations.")
+        return
+      }
+
+      try {
+        const res = await fetch("/api/simulation/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            name: `Base Simulation - ${new Date().toLocaleDateString()}`,
+            age: Number(baseInputs.currentAge),
+            retirementAge: Number(baseInputs.retirementAge),
+            monthlyIncome: Number(baseInputs.monthlyIncome),
+            monthlyContribution: Number(baseInputs.monthlyContribution),
+            currentSavings: Number(baseInputs.currentSavings || 0),
+            inflationRate: Number(baseInputs.inflationRate || 0),
+            lifestyle: "moderate",
+            growthModel: baseInputs.growthModel,
+            incomeType: baseInputs.incomeType,
+            savingBehavior: baseInputs.savingBehavior,
+            results: localResults,
+            forceSave: true
+          })
+        })
+
+        const data = await res.json()
+        if (!data.success) throw new Error(data.message)
+
+        alert("Base simulation saved successfully!")
+      } catch (err) {
+        console.error(err)
+        alert("Failed to save base simulation.")
+      }
       return
     }
 
+    // For scenarios - existing logic
     if (!activeScenario) return
     if (!activeScenario.results) {
-      alert("Please run the simulation for this scenario before saving.")
+      alert("Please run simulation for this scenario before saving.")
       return
     }
 
@@ -168,6 +222,7 @@ export default function ScenarioWorkspace({
         active={active}
         onChange={setActive}
         onAdd={handleAddScenario}
+        onBaseClick={() => window.location.href = '/dashboard/projection'}
       />
 
       {/* ================= PANEL ================= */}

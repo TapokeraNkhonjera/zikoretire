@@ -62,14 +62,18 @@ export default function ProjectionResults({
   results,
   isDirty,
   onSave,
-  onAddScenario,
-  saveLabel = "Save Simulation"
+  saveLabel,
+  isBase = true,
+  hasScenarios = false,
+  onSaveWithScenarios
 }: {
   results: ProjectionResult | null
   isDirty?: boolean
   onSave: (data: ProjectionResult) => void | Promise<void>
-  onAddScenario: () => void
   saveLabel?: string
+  isBase?: boolean
+  hasScenarios?: boolean
+  onSaveWithScenarios?: (data: ProjectionResult) => void | Promise<void>
 }) {
 
   const isEmpty = !results
@@ -356,15 +360,7 @@ export default function ProjectionResults({
               className="flex-1 h-11"
               onClick={() => onSave(results)}
             >
-              {saveLabel}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => onAddScenario()}
-              className="h-11"
-            >
-              Add Scenario
+              {hasScenarios ? "Save Simulation & All Scenarios" : "Save Simulation"}
             </Button>
 
           </div>

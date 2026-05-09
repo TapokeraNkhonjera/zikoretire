@@ -14,6 +14,21 @@ interface Notification {
   linkText?: string
   createdAt: string
   readAt?: string
+  priority?: 'low' | 'medium' | 'high'
+  metadata?: {
+    category?: string
+    confidence?: number
+    actionable?: boolean
+    activityType?: string
+    adminId?: string
+    adminName?: string
+    details?: any
+    pushNotification?: boolean
+    senderId?: string
+    senderName?: string
+    senderRole?: string
+    timestamp?: string
+  }
 }
 
 interface StyledNotificationBellProps {
@@ -119,7 +134,7 @@ export default function StyledNotificationBell({ className }: StyledNotification
     return () => clearInterval(interval)
   }, [])
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, metadata?: any) => {
     switch (type) {
       case 'success':
         return '🟢'
@@ -129,6 +144,28 @@ export default function StyledNotificationBell({ className }: StyledNotification
         return '🔴'
       case 'admin':
         return '📢'
+      case 'ml_nudge':
+        return '🤖'
+      case 'admin_activity':
+        return '⚙️'
+      case 'push_notification':
+        return '📱'
+      case 'milestone_celebration':
+        return '🎉'
+      case 'system_update':
+        return '🔄'
+      case 'security_alert':
+        return '🚨'
+      case 'performance_issue':
+        return '⚠️'
+      case 'data_sync':
+        return '📊'
+      case 'backup_complete':
+        return '💾'
+      case 'user_suspension':
+        return '🚫'
+      case 'ml_model_update':
+        return '🤖'
       default:
         return 'ℹ️'
     }
@@ -204,6 +241,10 @@ export default function StyledNotificationBell({ className }: StyledNotification
                   key={notification.id}
                   className={`p-4 border-b last:border-b-0 hover:bg-muted/50 ${
                     !notification.read ? 'bg-blue-50/50' : ''
+                  } ${
+                    notification.priority === 'high' ? 'border-l-4 border-l-red-500' : ''
+                  } ${
+                    notification.priority === 'medium' ? 'border-l-4 border-l-yellow-500' : ''
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -229,6 +270,16 @@ export default function StyledNotificationBell({ className }: StyledNotification
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDate(notification.createdAt)}
                           </p>
+                          {notification.metadata?.confidence && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              Confidence: {Math.round(notification.metadata.confidence * 100)}%
+                            </p>
+                          )}
+                          {notification.metadata?.actionable && (
+                            <p className="text-xs text-green-600 mt-1">
+                              ✓ Actionable
+                            </p>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           {!notification.read && (

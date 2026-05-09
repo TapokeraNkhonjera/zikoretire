@@ -6,12 +6,17 @@ import { useSession } from "next-auth/react"
 
 import { AnalyticsData } from "@/types/analytics"
 
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import SimulationSelector from "@/components/sections/analytics/SimulationSelector"
+import EnhancedSimulationSelector from "@/components/sections/analytics/EnhancedSimulationSelector"
 import AnalyticsOverview from "@/components/sections/analytics/AnalyticsOverview"
 import ComparisonChart from "@/components/sections/analytics/ComparisonChart"
 import ScenarioComparisonTable from "@/components/sections/analytics/ScenarioComparisonTable"
 import RsiAnalysis from "@/components/sections/analytics/RsiAnalysis"
 import RecommendationPanel from "@/components/sections/analytics/RecommendationPanel"
+import SimulationComparison from "@/components/sections/analytics/SimulationComparison"
 
 export default function AnalyticsPage() {
 
@@ -25,6 +30,7 @@ export default function AnalyticsPage() {
   const [selectedId, setSelectedId] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [mlOnline, setMlOnline] = useState<boolean | null>(null)
+  const [comparisonMode, setComparisonMode] = useState<boolean>(false)
 
   /* ================= FETCH REAL DATA ================= */
 
@@ -49,6 +55,7 @@ export default function AnalyticsPage() {
         const mapped: AnalyticsData[] = data.data.map((sim: {
           id: string
           createdAt: string
+          name?: string
           result: {
             projectedValue?: number
             estimatedMonthlyIncome?: number
@@ -77,7 +84,7 @@ export default function AnalyticsPage() {
 
           id: sim.id,
 
-          name: `Simulation ${sim.id.slice(-4)}`,
+          name: sim.name || `Simulation ${sim.id.slice(-4)}`,
 
           result: {
             projectedValue:
@@ -192,13 +199,31 @@ export default function AnalyticsPage() {
 
       {/* HEADER */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
-          Simulation Analytics
-        </h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
+              Simulation Analytics
+            </h2>
 
-        <p className="mt-1 text-muted-foreground">
-          Analyze your simulations and compare different retirement strategies.
-        </p>
+            <p className="mt-1 text-muted-foreground">
+              {comparisonMode 
+                ? "Compare multiple simulations or analyze scenarios." 
+                : "Analyze your simulations and compare different retirement strategies."
+              }
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="comparison-mode"
+              checked={comparisonMode}
+              onCheckedChange={setComparisonMode}
+            />
+            <Label htmlFor="comparison-mode" className="text-sm font-medium">
+              Comparison Mode
+            </Label>
+          </div>
+        </div>
       </div>
 
       <div
@@ -221,45 +246,56 @@ export default function AnalyticsPage() {
       ) : (
 
         <>
-          {/* SELECTOR */}
-          <SimulationSelector
-            simulations={simulations}
-            selectedId={selectedId}
-            onChange={setSelectedId}
-          />
-
-          {!selectedSimulation ? (
-            <p className="text-muted-foreground">
-              Select a simulation to begin analysis.
-            </p>
-          ) : (
-            <>
-              <AnalyticsOverview
-                data={selectedSimulation}
-              />
-
-              <ComparisonChart
-                data={selectedSimulation}
-              />
-
-              <div className="grid gap-6 lg:grid-cols-2">
-
-                <ScenarioComparisonTable
-                  data={selectedSimulation}
-                />
-
-                <RsiAnalysis
-                  data={selectedSimulation}
-                />
-
-              </div>
-
-              <RecommendationPanel
-                data={selectedSimulation}
-              />
-
-            </>
+          {/* SELECTOR - Only show in single simulation mode */}
+          {!comparisonMode && (
+            <EnhancedSimulationSelector
+              simulations={simulations}
+              selectedId={selectedId}
+              onChange={setSelectedId}
+              onFilterChange={(filters) => {
+                console.log("Filters changed:", filters)
+              }}
+            />
           )}
+
+          {comparisonMode ? (
+          <SimulationComparison simulations={simulations} />
+        ) : (
+          <>
+            {!selectedSimulation ? (
+              <p className="text-muted-foreground">
+                Select a simulation to begin analysis.
+              </p>
+            ) : (
+              <>
+                <AnalyticsOverview
+                  data={selectedSimulation}
+                />
+
+                <ComparisonChart
+                  data={selectedSimulation}
+                />
+
+                <div className="grid gap-6 lg:grid-cols-2">
+
+                  <ScenarioComparisonTable
+                    data={selectedSimulation}
+                  />
+
+                  <RsiAnalysis
+                    data={selectedSimulation}
+                  />
+
+                </div>
+
+                <RecommendationPanel
+                  data={selectedSimulation}
+                />
+
+              </>
+            )}
+          </>
+        )}
 
         </>
       )}

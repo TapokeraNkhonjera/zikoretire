@@ -64,45 +64,38 @@ export default function SettingsPage() {
       }
     };
     
+    let currentTheme = 'light';
     const savedSettings = localStorage.getItem('zikoretire-settings');
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
       setInlineNudgesEnabled(settings.inlineNudgesEnabled ?? true);
       setSuggestionCardsEnabled(settings.suggestionCardsEnabled ?? true);
       setNotificationsEnabled(settings.notificationsEnabled ?? true);
-      setTheme(settings.theme === 'dark' ? 'dark' : 'light');
+      currentTheme = settings.theme === 'dark' ? 'dark' : 'light';
+      setTheme(currentTheme as 'light' | 'dark');
     }
     
     // Apply theme immediately
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    if (isDarkMode !== (theme === 'dark')) {
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+    if (currentTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
     
     loadUserData();
   }, []);
 
   // Save settings to localStorage whenever they change
-  const saveSettings = async () => {
+  const saveSettings = async (settingsToSave: any) => {
     setLoading(true);
-    const settings = {
-      inlineNudgesEnabled,
-      suggestionCardsEnabled,
-      notificationsEnabled,
-      theme
-    };
     
-    localStorage.setItem('zikoretire-settings', JSON.stringify(settings));
+    localStorage.setItem('zikoretire-settings', JSON.stringify(settingsToSave));
     
     // Apply theme immediately with proper synchronization
     const isCurrentlyDark = document.documentElement.classList.contains('dark');
-    if (theme === 'dark' && !isCurrentlyDark) {
+    if (settingsToSave.theme === 'dark' && !isCurrentlyDark) {
       document.documentElement.classList.add('dark');
-    } else if (theme === 'light' && isCurrentlyDark) {
+    } else if (settingsToSave.theme === 'light' && isCurrentlyDark) {
       document.documentElement.classList.remove('dark');
     }
     
@@ -208,21 +201,32 @@ export default function SettingsPage() {
   
   
   const handleSettingChange = (setting: string, value: boolean | string) => {
+    const newSettings = {
+      inlineNudgesEnabled,
+      suggestionCardsEnabled,
+      notificationsEnabled,
+      theme
+    };
+
     switch (setting) {
       case 'inlineNudges':
         setInlineNudgesEnabled(value as boolean);
+        newSettings.inlineNudgesEnabled = value as boolean;
         break;
       case 'suggestionCards':
         setSuggestionCardsEnabled(value as boolean);
+        newSettings.suggestionCardsEnabled = value as boolean;
         break;
       case 'notifications':
         setNotificationsEnabled(value as boolean);
+        newSettings.notificationsEnabled = value as boolean;
         break;
       case 'theme':
         setTheme(value as 'light' | 'dark');
+        newSettings.theme = value as 'light' | 'dark';
         break;
     }
-    saveSettings();
+    saveSettings(newSettings);
   };
 
   return (

@@ -20,6 +20,7 @@ export async function POST(req: Request) {
 
     const {
       userId,
+      name,
 
       age,
       retirementAge,
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
       lifestyle = "moderate",
 
       results,
+      scenarios = [],
       forceSave = false
     } = data
 
@@ -47,6 +49,13 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { success: false, message: "User not authenticated" },
         { status: 401 }
+      )
+    }
+
+    if (!name) {
+      return NextResponse.json(
+        { success: false, message: "Simulation name is required" },
+        { status: 400 }
       )
     }
 
@@ -87,10 +96,12 @@ export async function POST(req: Request) {
       });
 
       if (existingSims.length > 0) {
+        const scenarioCount = scenarios && Array.isArray(scenarios) ? scenarios.length : 0;
+        const scenariosText = scenarioCount > 0 ? ` You are about to save this simulation along with ${scenarioCount} scenario(s).` : "";
         return NextResponse.json({
           success: false,
           isDuplicate: true,
-          message: "A simulation with similar results is already saved.",
+          message: `A simulation with similar results is already saved.${scenariosText}`,
           data: {
             simulationId: existingSims[0].id,
             resultId: existingSims[0].result?.id
@@ -133,6 +144,7 @@ export async function POST(req: Request) {
       data: {
 
         userId,
+        name,
 
         age,
         retirementAge,
@@ -188,9 +200,55 @@ const savedResult = await prisma.result.create({
   }
 })
 
+    /* ================= SAVE SCENARIOS ================= */
+    
+    if (scenarios && Array.isArray(scenarios) && scenarios.length > 0) {
+      for (const scenario of scenarios) {
+        if (!scenario.results) continue;
+        
+        const savedScenario = await prisma.scenario.create({
+          data: {
+            userId,
+            simulationId: simulation.id,
+            name: scenario.name || "Scenario",
+            
+            age: Number(scenario.inputs.currentAge),
+            retirementAge: Number(scenario.inputs.retirementAge),
+            monthlyIncome: Number(scenario.inputs.monthlyIncome),
+            monthlyContribution: Number(scenario.inputs.monthlyContribution),
+            currentSavings: Number(scenario.inputs.currentSavings || 0),
+            inflationRate: Number(scenario.inputs.inflationRate || 0),
+            
+            growthModel: scenario.inputs.growthModel.toUpperCase() as any,
+            incomeType: scenario.inputs.incomeType.toUpperCase() as any,
+            savingBehavior: scenario.inputs.savingBehavior.toUpperCase() as any,
+            
+            includeIrregular: scenario.inputs.includeIrregular || false,
+            extraContribution: Number(scenario.inputs.extraContribution || 0),
+            lifestyle: "moderate"
+          }
+        });
+
+        await prisma.scenarioResult.create({
+          data: {
+            scenarioId: savedScenario.id,
+            projectedSavings: Number(scenario.results.projectedSavings ?? 0),
+            estimatedMonthlyIncome: Number(scenario.results.estimatedMonthlyIncome ?? 0),
+            inflationAdjustedValue: Number(scenario.results.inflationAdjustedValue ?? 0),
+            rsiScore: Number(scenario.results.rsiScore ?? 0),
+            readinessLevel: scenario.results.rsiScore >= 100 ? "Ready" : scenario.results.rsiScore >= 60 ? "Moderate" : "At Risk",
+            
+            riskScore: mapRiskToScore(scenario.results?.meta?.mlRisk),
+            confidenceScore: typeof scenario.results?.meta?.mlConfidence === "number" ? Number(scenario.results.meta.mlConfidence) : null
+          }
+        });
+      }
+    }
+
     console.log("✅ SAVE SUCCESS:", {
       simulationId: simulation.id,
-      resultId: savedResult.id
+      resultId: savedResult.id,
+      scenariosSaved: scenarios.length
     })
 
     // 🎯 Trigger notification for simulation save

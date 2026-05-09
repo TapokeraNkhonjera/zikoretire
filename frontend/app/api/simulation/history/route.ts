@@ -43,6 +43,7 @@ const formatted = simulations.map((sim) => ({
 
   id: sim.id,
   createdAt: sim.createdAt,
+  priority: sim.priority,
 
   monthlyIncome: sim.monthlyIncome,
 

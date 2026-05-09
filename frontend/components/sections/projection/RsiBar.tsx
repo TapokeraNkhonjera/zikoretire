@@ -41,67 +41,75 @@ export default function RsiBar({
   }
 
   return (
-
-    <div className="p-5 space-y-4 border border-border/60 rounded-xl bg-card">
+    <div className="relative p-5 space-y-5 border border-border/40 rounded-2xl bg-card shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+      
+      {/* Decorative background blur */}
+      <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-10 rounded-full pointer-events-none transition-colors duration-1000 ${getColor()}`} />
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
-
-        <div>
-          <p className="text-sm font-semibold text-foreground">
+      <div className="flex items-start justify-between relative z-10">
+        <div className="space-y-1">
+          <p className="text-sm font-bold tracking-tight text-foreground">
             Retirement Sustainability Index
           </p>
-          <p className="text-xs text-muted-foreground">
-            Measures how sustainable your retirement plan is
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            Measures plan sustainability
           </p>
         </div>
 
         <span
           className={`
-            px-2.5 py-1 text-xs rounded-md font-medium
+            px-3 py-1 text-xs rounded-full font-bold tracking-wide shadow-sm
             ${getColor()}
             ${getTextColor()}
           `}
         >
           {getLabel()}
         </span>
-
       </div>
 
-      {/* SCALE MARKERS (important upgrade) */}
-      <div className="flex justify-between text-[10px] text-muted-foreground">
-        <span>0%</span>
-        <span>40%</span>
-        <span>70%</span>
-        <span>100%</span>
-      </div>
+      {/* BAR CONTAINER */}
+      <div className="relative pt-2 pb-1 z-10">
+        {/* SCALE MARKERS */}
+        <div className="flex justify-between text-[10px] font-medium text-muted-foreground/60 mb-2 px-1">
+          <span>0%</span>
+          <span>40%</span>
+          <span>70%</span>
+          <span>100%</span>
+        </div>
 
-      {/* BAR */}
-      <div className="relative w-full h-3 overflow-hidden rounded-full bg-muted">
-
-        <div
-          className={`
-            h-full rounded-full transition-all duration-700 ease-out
-            ${getColor()}
-          `}
-          style={{ width: `${safeScore}%` }}
-        />
-
+        {/* BAR BACKGROUND */}
+        <div className="relative w-full h-4 overflow-hidden rounded-full bg-muted/50 border border-border/50 shadow-inner">
+          
+          {/* BAR FILL */}
+          <div
+            className={`
+              absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out
+              ${getColor()}
+            `}
+            style={{ 
+              width: `${safeScore}%`,
+              boxShadow: "inset 0 2px 4px rgba(255,255,255,0.2)"
+            }}
+          >
+            {/* Inner gradient shine */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full animate-[shimmer_2s_infinite]" style={{ backgroundSize: '200% 100%' }} />
+          </div>
+        </div>
       </div>
 
       {/* VALUE */}
-      <div className="flex items-center justify-between">
-
-        <span className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between pt-1 relative z-10">
+        <span className="text-xs font-medium text-muted-foreground">
           RSI Score
         </span>
-
-        <span className="text-sm font-semibold text-primary">
-          {safeScore.toFixed(1)}%
-        </span>
-
+        <div className="flex items-baseline gap-1">
+          <span className={`text-2xl font-black tracking-tighter ${getColor().replace('bg-', 'text-')}`}>
+            {safeScore.toFixed(1)}
+          </span>
+          <span className="text-sm font-bold text-muted-foreground">%</span>
+        </div>
       </div>
-
     </div>
   )
 }

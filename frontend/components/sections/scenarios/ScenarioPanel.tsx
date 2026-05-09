@@ -12,22 +12,26 @@ import { useSettings } from "@/contexts/SettingsContext";
 
 interface ScenarioPanelProps {
   isBase: boolean;
+  hasScenarios: boolean;
   baseInputs: ProjectionInputs;
   scenario: ScenarioItem | null;
   onChange: (id: string, data: ProjectionInputs) => void;
   onUpdateResult: (id: string, result: ProjectionResult) => void;
-  onAddScenario: () => void;
   onSave: () => void;
+  onBaseInputChange?: (data: ProjectionInputs) => void; // Added for base simulation
+  onBaseResultUpdate?: (result: ProjectionResult) => void; // Added for base simulation results
 }
 
 export default function ScenarioPanel({
   isBase,
+  hasScenarios,
   baseInputs,
   scenario,
   onChange,
   onUpdateResult,
-  onAddScenario,
   onSave,
+  onBaseInputChange,
+  onBaseResultUpdate,
 }: ScenarioPanelProps) {
   const [localResults, setLocalResults] = useState<ProjectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,8 +84,9 @@ export default function ScenarioPanel({
       if (response.ok) {
         const data = await response.json();
         console.log('ML analysis response data:', data);
+        console.log('Setting suggestions:', data.data.suggestions);
         setSuggestions(data.data.suggestions);
-        console.log('Suggestions set:', data.data.suggestions);
+        console.log('Suggestions after set:', data.data.suggestions);
       } else {
         console.error('ML analysis failed with status:', response.status);
         const errorText = await response.text();
@@ -161,6 +166,10 @@ export default function ScenarioPanel({
 
       if (isBase) {
         setLocalResults(result);
+        // Notify parent component about the result
+        if (onBaseResultUpdate) {
+          onBaseResultUpdate(result);
+        }
       } else if (scenario) {
         onUpdateResult(scenario.id, result);
       }
@@ -173,7 +182,9 @@ export default function ScenarioPanel({
   };
 
   const handleChange = (data: ProjectionInputs) => {
-    if (!isBase && scenario) {
+    if (isBase && onBaseInputChange) {
+      onBaseInputChange(data);
+    } else if (!isBase && scenario) {
       onChange(scenario.id, data);
     }
   };
@@ -183,12 +194,21 @@ export default function ScenarioPanel({
   };
 
   const getActiveInlineNudges = () => {
+    console.log('getActiveInlineNudges called:', { 
+      inlineNudgesEnabled: settings.inlineNudgesEnabled, 
+      suggestions, 
+      dismissedNudges: Array.from(dismissedNudges)
+    });
+    
     if (!settings.inlineNudgesEnabled || !suggestions) return [];
     
-    return suggestions.filter(suggestion => 
+    const activeNudges = suggestions.filter(suggestion => 
       !dismissedNudges.has(suggestion.id) && 
       ['contribution', 'retirement_age', 'strategy', 'inflation'].includes(suggestion.type)
     );
+    
+    console.log('Active nudges:', activeNudges);
+    return activeNudges;
   };
 
   const renderInlineNudge = (fieldType: string, inputElement: React.ReactNode) => {
@@ -223,11 +243,16 @@ export default function ScenarioPanel({
       console.log('Calling analyzeWithML from useEffect');
       analyzeWithML();
     }
-  }, [isBase, baseInputs]);
+  }, [isBase, JSON.stringify(baseInputs), settings.suggestionCardsEnabled]); // Stringify object to prevent reference changes
+
+  // Debug: Log suggestions state changes
+  useEffect(() => {
+    console.log('Suggestions state changed:', suggestions);
+  }, [suggestions]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-      <div className="p-4 sm:p-6 border bg-card rounded-2xl">
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="p-6 border bg-card rounded-2xl">
         <div className="relative">
           <ProjectionForm
             inputs={currentInputs}
@@ -271,7 +296,8 @@ export default function ScenarioPanel({
               isDirty={false}
               onSave={onSave}
               saveLabel={isBase ? "Update Base Simulation" : "Save Scenario"}
-              onAddScenario={onAddScenario}
+              isBase={isBase}
+              hasScenarios={hasScenarios}
             />
           </div>
         )}
