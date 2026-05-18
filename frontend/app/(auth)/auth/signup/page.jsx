@@ -6,29 +6,41 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mlTrainingConsent, setMlTrainingConsent] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, mlTrainingConsent }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message);
+      toast({
+        title: "Registration failed",
+        description: data.message || "An error occurred during registration",
+        variant: "destructive",
+      });
       return;
     }
 
+    toast({
+      title: "Account created!",
+      description: "Please sign in with your new credentials.",
+    });
     router.push("/auth/signin");
   }
 
@@ -65,6 +77,27 @@ export default function SignUpPage() {
       value={password}
       onChange={(e) => setPassword(e.target.value)}
     />
+  </div>
+
+  {/* ML TRAINING CONSENT */}
+  <div className="flex items-start space-x-3 pt-2 pb-2">
+    <Checkbox
+      id="ml-consent"
+      checked={mlTrainingConsent}
+      onCheckedChange={(checked) => setMlTrainingConsent(checked)}
+      className="mt-1"
+    />
+    <div className="grid gap-1.5 leading-none">
+      <label
+        htmlFor="ml-consent"
+        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+      >
+        Help improve ZikoRetire (Optional)
+      </label>
+      <p className="text-[0.8rem] text-muted-foreground leading-snug">
+        I consent to my anonymized usage and telemetry data being used to train and improve the machine learning models. This can be toggled at any time in settings.
+      </p>
+    </div>
   </div>
 
   {/* BUTTON */}

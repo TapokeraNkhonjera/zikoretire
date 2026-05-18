@@ -2,21 +2,51 @@
 
 import { ReactNode } from "react"
 
+import { motion, useSpring, useTransform } from "framer-motion"
+import { useEffect } from "react"
+
 interface ResultCardProps {
   icon: ReactNode
-  label: string
-  value: ReactNode
+  label: ReactNode
+  value?: ReactNode
+  numericValue?: number
+  prefix?: string
+  suffix?: string
   highlight?: boolean
+}
+
+function AnimatedNumber({ value, prefix = "", suffix = "" }: { value: number, prefix?: string, suffix?: string }) {
+  const springValue = useSpring(0, { bounce: 0, duration: 1500 });
+  
+  useEffect(() => {
+    springValue.set(value);
+  }, [value, springValue]);
+
+  const display = useTransform(springValue, (current) => {
+    const formatter = new Intl.NumberFormat('en-US', { 
+      notation: 'compact', 
+      maximumFractionDigits: 2 
+    });
+    return `${prefix}${formatter.format(current)}${suffix}`;
+  });
+
+  return <motion.span>{display}</motion.span>;
 }
 
 export default function ResultCard({
   icon,
   label,
   value,
+  numericValue,
+  prefix = "",
+  suffix = "",
   highlight = false
 }: ResultCardProps) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className={`
         relative p-5 rounded-xl border
         transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg
@@ -46,15 +76,19 @@ export default function ResultCard({
       {/* VALUE */}
       <div
         className={`
-          mt-4 text-2xl font-bold tracking-tight relative z-10
+          mt-4 text-2xl font-bold tracking-tight relative z-10 tabular-nums whitespace-nowrap overflow-hidden text-ellipsis
           ${highlight ? "text-foreground" : "text-foreground group-hover:text-primary transition-colors duration-300"}
         `}
       >
-        {value}
+        {numericValue !== undefined ? (
+          <AnimatedNumber value={numericValue} prefix={prefix} suffix={suffix} />
+        ) : (
+          value
+        )}
       </div>
 
       {/* SUBTLE BOTTOM LINE */}
       <div className={`w-full h-[2px] mt-4 rounded-full transition-all duration-300 ${highlight ? "bg-gradient-to-r from-primary/50 to-transparent" : "bg-border/50 group-hover:bg-primary/20"}`} />
-    </div>
+    </motion.div>
   )
 }

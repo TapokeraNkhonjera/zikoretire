@@ -56,16 +56,29 @@ function ToastComponent({ toast, onClose }: ToastProps) {
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
       <div className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg min-w-[320px] max-w-[400px] ${getStyles()}`}>
-        <div className="flex-shrink-0">{getIcon()}</div>
+        <div className="flex-shrink-0 mt-0.5">{getIcon()}</div>
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold">{toast.title}</h4>
           {toast.message && (
             <p className="text-sm mt-1 opacity-90">{toast.message}</p>
           )}
+          {toast.action && (
+            <div className="mt-3">
+              <button
+                onClick={() => {
+                  toast.action?.onClick();
+                  onClose(toast.id);
+                }}
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-background/20 hover:bg-background/30 transition-colors"
+              >
+                {toast.action.label}
+              </button>
+            </div>
+          )}
         </div>
         <button
           onClick={() => onClose(toast.id)}
-          className="flex-shrink-0 ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex-shrink-0 ml-2 mt-0.5 opacity-70 hover:opacity-100 transition-opacity"
         >
           <X className="w-4 h-4" />
         </button>
@@ -74,37 +87,7 @@ function ToastComponent({ toast, onClose }: ToastProps) {
   );
 }
 
-let toastCount = 0;
-
-export function useToast() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const addToast = (type: ToastType, title: string, message?: string, duration?: number) => {
-    const id = `toast-${++toastCount}`;
-    const newToast: Toast = { id, type, title, message, duration };
-    
-    setToasts(prev => [...prev, newToast]);
-    
-    return id;
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  const success = (title: string, message?: string) => addToast("success", title, message);
-  const error = (title: string, message?: string) => addToast("error", title, message);
-  const info = (title: string, message?: string) => addToast("info", title, message);
-
-  return {
-    toasts,
-    addToast,
-    removeToast,
-    success,
-    error,
-    info
-  };
-}
+import { useToast } from "@/hooks/use-toast";
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { toasts, removeToast } = useToast();

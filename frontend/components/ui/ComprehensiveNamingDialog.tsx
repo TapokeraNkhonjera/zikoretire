@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
 import { ScenarioItem } from "@/types/scenario"
 
 interface ComprehensiveNamingDialogProps {
@@ -29,6 +30,7 @@ export default function ComprehensiveNamingDialog({
   defaultSimulationName = "",
   scenarios
 }: ComprehensiveNamingDialogProps) {
+  const { toast } = useToast()
   const [simulationName, setSimulationName] = useState("")
   const [scenarioNames, setScenarioNames] = useState<Record<string, string>>({})
   const savingRef = useRef(false)
@@ -73,7 +75,11 @@ export default function ComprehensiveNamingDialog({
 
     // Validate that user provided a simulation name
     if (!simulationName || simulationName.trim() === "") {
-      alert("Please enter a name for your simulation before saving.")
+      toast({
+        title: "Name Required",
+        description: "Please enter a name for your simulation before saving.",
+        variant: "destructive"
+      });
       return
     }
 

@@ -48,7 +48,7 @@ export default function ScenarioComparisonTable({ data }: Props) {
     <Card className="border-border/60">
 
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-black">
+        <CardTitle className="text-base font-semibold text-foreground">
           Scenario Comparison
         </CardTitle>
       </CardHeader>
@@ -57,7 +57,7 @@ export default function ScenarioComparisonTable({ data }: Props) {
 
         {/* EMPTY STATE */}
         {!hasScenarios && (
-          <div className="p-6 text-sm text-center text-black border rounded-lg bg-muted/30 border-border/60">
+          <div className="p-6 text-sm text-center text-foreground border rounded-lg bg-muted/30 border-border/60">
             No scenarios available for this simulation.
             <p className="mt-1 text-xs text-muted-foreground">
               Create scenarios to compare different retirement strategies.
@@ -75,20 +75,20 @@ export default function ScenarioComparisonTable({ data }: Props) {
               key={i}
               className={`p-4 border rounded-xl transition ${
                 isBest
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-border/60 bg-white"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/50"
+                  : "border-border/60 bg-card"
               }`}
             >
 
               {/* HEADER */}
               <div className="flex items-center justify-between mb-3">
 
-                <p className="text-sm font-semibold text-black">
+                <p className="text-sm font-semibold text-foreground">
                   {row.name}
                 </p>
 
                 {isBest && (
-                  <span className="text-xs font-medium text-blue-600">
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                     Best Option
                   </span>
                 )}
@@ -103,7 +103,7 @@ export default function ScenarioComparisonTable({ data }: Props) {
                   <p className="text-xs text-muted-foreground">
                     Projection
                   </p>
-                  <p className="font-semibold text-black">
+                  <p className="font-semibold text-foreground">
                     MWK {row.projectedValue.toLocaleString()}
                   </p>
                 </div>
@@ -113,9 +113,9 @@ export default function ScenarioComparisonTable({ data }: Props) {
                   <p className="text-xs text-muted-foreground">
                     Monthly Income
                   </p>
-                  <p className="font-semibold text-black">
-                    {row.monthlyRetirementIncome
-                      ? `MWK ${row.monthlyRetirementIncome.toLocaleString()}`
+                  <p className="font-semibold text-foreground">
+                    {row.estimatedMonthlyIncome
+                      ? `MWK ${row.estimatedMonthlyIncome.toLocaleString()}`
                       : "-"}
                   </p>
                 </div>

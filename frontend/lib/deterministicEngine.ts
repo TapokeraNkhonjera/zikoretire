@@ -21,6 +21,7 @@ export type RunInput = {
   incomeType: "stable" | "flexible" | "seasonal"
   savingBehavior: "consistent" | "flexible" | "opportunistic"
   lifestyle: "basic" | "moderate" | "comfortable"
+  historicalData?: any
 }
 
 export type DeterministicResult = {
@@ -50,15 +51,19 @@ export type DeterministicMeta = {
   // ML-related properties (optional)
   mlStatus?: string
   mlWarnings?: string[]
-  mlRisk?: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN"
-  mlRequestId?: string | null
-  mlConfidence?: number | null
-  mlPrediction?: number | null
-  mlReadinessPercentage?: number | null
+  mlRisk?: string
+  mlRequestId?: string
+  mlConfidence?: number
+  mlPrediction?: number
+  mlReadinessPercentage?: number
   mlFactorsCount?: number
-  mlExplanation?: string | null
-  mlAdvice?: string | null
-}
+  mlExplanation?: string
+  mlAdvice?: string
+  // Compliance properties
+  complianceWarning?: string
+  earlyRetirementPenalty?: number
+  isFormalSector?: boolean
+} | null
 
 export type StrategyAdjustments = {
   returnRateMultiplier: number
@@ -157,6 +162,131 @@ const GROWTH_MODEL_RATES: Record<RunInput["growthModel"], number> = {
 }
 
 // =========================================================
+// COMPLIANCE FUNCTIONS (Malawi Pension Act 2023)
+// =========================================================
+
+// Strategy classification for compliance
+function classifyStrategy(strategy: ProjectionStrategy): "formal" | "informal" {
+  const formalStrategies: ProjectionStrategy[] = [
+    "conservative", "balanced", "aggressive", "contribution_growth", 
+    "sustainability", "early_retirement", "inflation_stress"
+  ]
+  const informalStrategies: ProjectionStrategy[] = ["informal", "seasonal"]
+  
+  if (formalStrategies.includes(strategy)) return "formal"
+  if (informalStrategies.includes(strategy)) return "informal"
+  
+  // Default to formal for unknown strategies
+  return "formal"
+}
+
+// Calculate early retirement penalty for formal sector
+function calculateEarlyRetirementPenalty(
+  retirementAge: number, 
+  baseProjectedAmount: number
+): { 
+  adjustedAmount: number; 
+  penaltyRate: number; 
+  complianceWarning?: string 
+} {
+  const statutoryRetirementAge = 50
+  
+  // Only apply penalty if retirement age is below statutory age
+  if (retirementAge >= statutoryRetirementAge) {
+    return { 
+      adjustedAmount: baseProjectedAmount, 
+      penaltyRate: 0 
+    }
+  }
+  
+  // Calculate penalty: 3% per year below 50
+  const yearsBelowStatutory = statutoryRetirementAge - retirementAge
+  const penaltyRate = Math.pow(1 - 0.03, yearsBelowStatutory)
+  const adjustedAmount = baseProjectedAmount * penaltyRate
+  
+  const complianceWarning = `Retiring before the statutory age of 50 in the formal sector results in a 3% annual benefit reduction per the Pension Act. Total reduction: ${((1 - penaltyRate) * 100).toFixed(1)}%`
+  
+  return { 
+    adjustedAmount, 
+    penaltyRate: 1 - penaltyRate, 
+    complianceWarning 
+  }
+}
+
+// Apply compliance adjustments to projection result
+function applyComplianceAdjustments(
+  baseResult: DeterministicResult,
+  input: RunInput
+): DeterministicResult {
+  const strategy = input.projectionStrategy ?? "balanced"
+  const isFormalSector = classifyStrategy(strategy) === "formal"
+  
+  // Start with base projected amount
+  let adjustedProjectedSavings = baseResult.projectedSavings
+  let complianceWarning: string | undefined
+  let earlyRetirementPenalty: number | undefined
+  
+  if (isFormalSector) {
+    // Apply early retirement penalty for formal sector
+    const penaltyResult = calculateEarlyRetirementPenalty(
+      input.retirementAge, 
+      adjustedProjectedSavings
+    )
+    
+    adjustedProjectedSavings = penaltyResult.adjustedAmount
+    complianceWarning = penaltyResult.complianceWarning
+    earlyRetirementPenalty = penaltyResult.penaltyRate
+  }
+  // Note: Informal sector exception - no penalty applied, just reduced compounding time
+  
+  // Update the result with compliance adjustments
+  const baseMeta = baseResult.meta
+  return {
+    ...baseResult,
+    projectedSavings: Math.round(adjustedProjectedSavings),
+    estimatedMonthlyIncome: Math.round(adjustedProjectedSavings / (20 * 12)),
+    inflationAdjustedValue: Math.round(adjustedProjectedSavings),
+    meta: {
+      projectionStrategy: strategy,
+      growthModel: input.growthModel,
+      incomeType: input.incomeType,
+      savingBehavior: input.savingBehavior,
+      annualReturnRate: baseMeta?.annualReturnRate || 0,
+      adjustedContribution: baseMeta?.adjustedContribution || 0,
+      contributionConsistencyScore: baseMeta?.contributionConsistencyScore || 1,
+      skippedMonths: baseMeta?.skippedMonths || 0,
+      sustainabilityYears: baseMeta?.sustainabilityYears || null,
+      engine: baseMeta?.engine || "deterministic",
+      effectiveInflationRate: baseMeta?.effectiveInflationRate || 0,
+      yearsToRetirement: baseMeta?.yearsToRetirement || 0,
+      totalMonths: baseMeta?.totalMonths || 0,
+      effectiveMonths: baseMeta?.effectiveMonths || 0,
+      strategyAdjustments: baseMeta?.strategyAdjustments || {
+        returnRateMultiplier: 1,
+        inflationAdjustment: 0,
+        contributionMultiplier: 1,
+        incomeFactor: 1,
+        lifestyleFactor: 1,
+        yearsAdjustment: 0
+      },
+      mlStatus: baseMeta?.mlStatus,
+      mlWarnings: baseMeta?.mlWarnings,
+      mlRisk: baseMeta?.mlRisk,
+      mlRequestId: baseMeta?.mlRequestId,
+      mlConfidence: baseMeta?.mlConfidence,
+      mlPrediction: baseMeta?.mlPrediction,
+      mlReadinessPercentage: baseMeta?.mlReadinessPercentage,
+      mlFactorsCount: baseMeta?.mlFactorsCount,
+      mlExplanation: baseMeta?.mlExplanation,
+      mlAdvice: baseMeta?.mlAdvice,
+      complianceWarning,
+      earlyRetirementPenalty,
+      isFormalSector
+    }
+  }
+}
+
+// =========================================================
 // BEHAVIORAL ADJUSTMENTS
 // =========================================================
 function getBehavioralAdjustments(input: RunInput): {
@@ -226,12 +356,15 @@ function calculateBaseProjection(input: RunInput, strategy: ProjectionStrategy):
 
   // Strategy-specific contribution patterns
   if (strategy === "informal") {
-    skippedMonths = Math.min(10, Math.max(0, Math.round(totalMonths * 0.08)))
+    // 1 month skipped every quarter (25%)
+    skippedMonths = Math.floor(totalMonths * 0.25)
     effectiveMonths = Math.max(1, totalMonths - skippedMonths)
     contributionConsistencyScore = effectiveMonths / totalMonths
   } else if (strategy === "seasonal") {
     contributionConsistencyScore = 0.75
-    // Seasonal patterns are handled in contribution calculation
+    // 8 dry months every year
+    skippedMonths = Math.floor(totalMonths * (8/12))
+    effectiveMonths = Math.max(1, totalMonths - skippedMonths)
   }
 
   return {
@@ -254,42 +387,50 @@ function calculateFutureContributions(
   strategy: ProjectionStrategy,
   baseCalc: ReturnType<typeof calculateBaseProjection>
 ): number {
-  const { adjustedContribution, totalMonths, effectiveMonths } = baseCalc
+  const { adjustedContribution, totalMonths } = baseCalc
   const monthlyRate = baseCalc.annualReturnRate / 12
 
-  switch (strategy) {
-    case "seasonal": {
-      // 4 months peak, 8 months weak
-      const peakMonths = Math.round((totalMonths / 12) * 4)
-      const weakMonths = Math.max(0, totalMonths - peakMonths)
-      const peakContribution = adjustedContribution * 1.6
-      const weakContribution = adjustedContribution * 0.6
-      
-      const fvPeak = peakContribution * ((Math.pow(1 + monthlyRate, peakMonths) - 1) / monthlyRate)
-      const fvWeak = weakContribution * ((Math.pow(1 + monthlyRate, weakMonths) - 1) / monthlyRate)
-      
-      return fvPeak + fvWeak
-    }
+  let futureValue = 0
 
-    case "contribution_growth": {
-      // 7% annual contribution growth
-      const annualGrowthRate = 0.07
-      let futureValue = 0
-      
-      for (let year = 0; year < baseCalc.yearsToRetirement; year++) {
-        const yearlyContribution = adjustedContribution * Math.pow(1 + annualGrowthRate, year)
-        const monthsRemaining = (baseCalc.yearsToRetirement - year) * 12
-        futureValue += yearlyContribution * ((Math.pow(1 + monthlyRate, monthsRemaining) - 1) / monthlyRate)
+  for (let m = 1; m <= totalMonths; m++) {
+    // 1. Compound existing balance
+    futureValue = futureValue * (1 + monthlyRate)
+    
+    // 2. Add new contribution
+    let monthlyCont = adjustedContribution
+    
+    switch (strategy) {
+      case "seasonal": {
+        // 4 months harvest, 8 months dry. Total annual contribution is preserved (4 * 3.0 = 12)
+        const monthInYear = m % 12
+        if (monthInYear > 0 && monthInYear <= 4) {
+           monthlyCont = adjustedContribution * 3.0
+        } else {
+           monthlyCont = 0
+        }
+        break;
       }
-      
-      return futureValue
+      case "contribution_growth": {
+        const yearsPassed = Math.floor((m - 1) / 12)
+        monthlyCont = adjustedContribution * Math.pow(1 + 0.07, yearsPassed)
+        break;
+      }
+      case "informal": {
+        // Skips 1 month every quarter (e.g. months 3, 6, 9, 12) to simulate gig volatility
+        if (m % 3 === 0) {
+           monthlyCont = 0
+        }
+        break;
+      }
+      default: {
+        break;
+      }
     }
-
-    default: {
-      // Standard annuity calculation
-      return adjustedContribution * ((Math.pow(1 + monthlyRate, effectiveMonths) - 1) / monthlyRate)
-    }
+    
+    futureValue += monthlyCont
   }
+
+  return futureValue
 }
 
 // =========================================================
@@ -334,7 +475,7 @@ export function buildDeterministicProjection(input: RunInput): DeterministicResu
     sustainabilityYears = annualNeed > 0 ? inflationAdjustedSavings / annualNeed : 0
   }
 
-  return {
+  const baseResult = {
     projectedSavings: Math.round(inflationAdjustedSavings),
     estimatedMonthlyIncome: Math.round(inflationAdjustedSavings / (20 * 12)),
     inflationAdjustedValue: Math.round(inflationAdjustedSavings),
@@ -348,8 +489,8 @@ export function buildDeterministicProjection(input: RunInput): DeterministicResu
       adjustedContribution: baseCalc.adjustedContribution,
       contributionConsistencyScore: Number(baseCalc.contributionConsistencyScore.toFixed(3)),
       skippedMonths: baseCalc.skippedMonths,
-      sustainabilityYears: typeof sustainabilityYears === "number" ? Number(sustainabilityYears.toFixed(2)) : null,
-      engine: "deterministic-v3",
+      sustainabilityYears,
+      engine: "deterministic",
       effectiveInflationRate: baseCalc.effectiveInflation,
       yearsToRetirement: baseCalc.yearsToRetirement,
       totalMonths: baseCalc.totalMonths,
@@ -357,11 +498,116 @@ export function buildDeterministicProjection(input: RunInput): DeterministicResu
       strategyAdjustments: strategyConfig
     }
   }
+
+  // Apply compliance adjustments (Malawi Pension Act 2023)
+  return applyComplianceAdjustments(baseResult, input)
 }
 
 // =========================================================
 // UTILITY FUNCTIONS
 // =========================================================
+export function generateProjectionCurve(input: RunInput, stepYears: number = 1): { year: string, savings: number, inflationAdjusted: number }[] {
+  const strategy: ProjectionStrategy = input.projectionStrategy ?? "balanced"
+  const strategyConfig = STRATEGY_CONFIGS[strategy]
+  const behavioralAdjustments = getBehavioralAdjustments(input)
+
+  const baseCalc = calculateBaseProjection(input, strategy)
+  
+  const curve = []
+  const currentYear = new Date().getFullYear()
+  const monthlyRate = baseCalc.annualReturnRate / 12
+
+  const totalMonths = baseCalc.yearsToRetirement * 12
+  const stepMonths = Math.max(1, Math.round(stepYears * 12)) 
+
+  let currentSavingsBalance = input.currentSavings || 0
+  const totalSkippedAllowed = strategy === "informal" 
+      ? Math.min(10, Math.round(totalMonths * 0.08)) 
+      : 0
+
+  curve.push({
+    year: currentYear.toString(),
+    savings: Math.round(currentSavingsBalance),
+    inflationAdjusted: Math.round(currentSavingsBalance)
+  })
+
+  for (let m = 1; m <= totalMonths; m++) {
+    
+    currentSavingsBalance = currentSavingsBalance * (1 + monthlyRate)
+    
+    // Default standard contribution (used as base for all strategies)
+    let monthlyCont = baseCalc.adjustedContribution
+    let historicalProbability = 1.0;
+    
+    // If we have highly accurate historical data, override generic strategies
+    if (input.historicalData && input.historicalData.depositProbabilityMap) {
+      const monthInYear = m % 12;
+      historicalProbability = input.historicalData.depositProbabilityMap[monthInYear] ?? 0;
+      // In historical mode, the engine uses the probability of deposit per month.
+      // If they skip this month historically, we skip. Otherwise they deposit base.
+      // We'll deterministically map the probability to a binary or scaled contribution.
+      // e.g. if probability is 1 (always deposited), they deposit. If 0, they don't.
+      monthlyCont = baseCalc.adjustedContribution * historicalProbability;
+    } else {
+      // Execute generic ML-inferred strategies
+      switch (strategy) {
+        case "seasonal": {
+          const monthInYear = m % 12
+          // Harvest months: May(4), Jun(5), Jul(6), Aug(7)
+          if (monthInYear >= 4 && monthInYear <= 7) {
+             monthlyCont = baseCalc.adjustedContribution * 3.0
+          } else {
+             monthlyCont = 0
+          }
+          break;
+        }
+        case "informal": {
+           // Skip ~25% of months to simulate freelance volatility
+           if ((m * 17) % 4 === 0) { 
+              monthlyCont = 0
+           }
+           break;
+        }
+        case "balanced":
+        default:
+          // Keep it as baseCalc.adjustedContribution
+          break;
+      }
+    }
+    
+    currentSavingsBalance += monthlyCont
+
+    if (m % stepMonths === 0 || m === totalMonths) {
+      const yearsElapsed = m / 12
+      const yearNum = currentYear + Math.floor(yearsElapsed)
+      let yearStr = yearNum.toString()
+      
+      if (stepMonths === 1) { 
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        const currentMonthIndex = new Date().getMonth()
+        const totalMonthsAbsolute = currentMonthIndex + m
+        const targetMonthIndex = totalMonthsAbsolute % 12
+        const yearOffset = Math.floor(totalMonthsAbsolute / 12)
+        const actualYearNum = currentYear + yearOffset
+        yearStr = `${monthNames[targetMonthIndex]} '${actualYearNum.toString().slice(2)}`
+      }
+      
+      const inflationAdjustedSavings = currentSavingsBalance * Math.pow(1 - baseCalc.effectiveInflation, yearsElapsed)
+
+      const isDuplicate = curve.length > 0 && curve[curve.length - 1].year === yearStr
+      
+      if (!isDuplicate) {
+        curve.push({
+          year: yearStr,
+          savings: Math.round(currentSavingsBalance),
+          inflationAdjusted: Math.round(inflationAdjustedSavings)
+        })
+      }
+    }
+  }
+
+  return curve
+}
 export function getStrategyDescription(strategy: ProjectionStrategy): string {
   const descriptions: Record<ProjectionStrategy, string> = {
     conservative: "Lower growth assumptions with higher inflation sensitivity for safer long-term stability",

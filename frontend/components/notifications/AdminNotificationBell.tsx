@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+
 interface Notification {
   id: string
   title: string
@@ -34,6 +36,7 @@ export default function AdminNotificationBell({ className }: AdminNotificationBe
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
+  const { toast } = useToast()
   
   // Form state for creating notifications
   const [formData, setFormData] = useState({
@@ -67,7 +70,11 @@ export default function AdminNotificationBell({ className }: AdminNotificationBe
   // Create notification
   const createNotification = async () => {
     if (!formData.title || !formData.message) {
-      alert('Title and message are required')
+      toast({
+        title: "Validation Error",
+        description: "Title and message are required",
+        variant: "destructive"
+      });
       return
     }
 
@@ -85,7 +92,10 @@ export default function AdminNotificationBell({ className }: AdminNotificationBe
       const data = await res.json()
       
       if (data.success) {
-        alert(`Notification sent to ${data.data.created} users`)
+        toast({
+          title: "Notification Sent",
+          description: `Notification sent to ${data.data.created} users`
+        });
         setFormData({
           title: '',
           message: '',
@@ -98,11 +108,19 @@ export default function AdminNotificationBell({ className }: AdminNotificationBe
         setShowCreateForm(false)
         fetchNotifications()
       } else {
-        alert('Failed to create notification: ' + data.message)
+        toast({
+          title: "Error",
+          description: 'Failed to create notification: ' + data.message,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Failed to create notification:", error)
-      alert('Failed to create notification')
+      toast({
+        title: "Error",
+        description: "Failed to create notification",
+        variant: "destructive"
+      });
     } finally {
       setCreateLoading(false)
     }

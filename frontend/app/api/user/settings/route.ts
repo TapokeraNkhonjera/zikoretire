@@ -19,6 +19,7 @@ export async function GET() {
         name: true,
         email: true,
         image: true,
+        mlTrainingConsent: true,
         createdAt: true,
       }
     });
@@ -161,6 +162,30 @@ export async function PUT(req: Request) {
           success: true,
           data: userWithAvatar,
           message: "Avatar updated successfully"
+        });
+
+      case "ml_consent":
+        // Update ML training consent
+        if (typeof updateData.mlTrainingConsent !== 'boolean') {
+          return NextResponse.json(
+            { error: "mlTrainingConsent must be a boolean" },
+            { status: 400 }
+          );
+        }
+
+        const userWithConsent = await prisma.user.update({
+          where: { id: session.user.id },
+          data: { mlTrainingConsent: updateData.mlTrainingConsent },
+          select: {
+            id: true,
+            mlTrainingConsent: true,
+          }
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: userWithConsent,
+          message: "ML training consent updated successfully"
         });
 
       default:

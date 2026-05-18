@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label";
 
 import { Eye, EyeOff } from "lucide-react";
 import SessionManager from "@/lib/sessionManager";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignInPage() {
 
   const router = useRouter();
+  const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,17 +44,21 @@ export default function SignInPage() {
       });
 
       if (!res) {
-
-        alert("No response from auth server");
+        toast({
+          title: "Connection Error",
+          description: "No response from auth server",
+          variant: "destructive"
+        });
         return;
-
       }
 
       if (res.error) {
-
-        alert("Invalid email or password");
+        toast({
+          title: "Sign in failed",
+          description: "Invalid email or password",
+          variant: "destructive"
+        });
         return;
-
       }
 
       // Get current session
@@ -72,20 +78,20 @@ export default function SignInPage() {
       // ⭐ Role redirect
 
       if (session.user.role === "ADMIN") {
-
+        toast({ title: "Welcome back!", description: "Signed in successfully as Admin." });
         router.push("/admin/dashboard");
-
       } else {
-
+        toast({ title: "Welcome back!", description: "Signed in successfully." });
         router.push("/dashboard");
-
       }
 
     } catch (error) {
-
       console.error(error);
-      alert("Something went wrong");
-
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive"
+      });
     } finally {
 
       setLoading(false);

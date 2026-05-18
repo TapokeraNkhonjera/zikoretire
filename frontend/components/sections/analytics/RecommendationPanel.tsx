@@ -90,7 +90,7 @@ export default function RecommendationPanel({ data }: Props) {
     <Card className="border-border/60">
 
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-black">
+        <CardTitle className="text-base font-semibold text-foreground">
           Recommendations
         </CardTitle>
       </CardHeader>
@@ -101,15 +101,15 @@ export default function RecommendationPanel({ data }: Props) {
 
         <div className="p-4 space-y-2 border rounded-xl bg-muted/30 border-border/60">
 
-          <p className="text-sm font-semibold text-black">
+          <p className="text-sm font-semibold text-foreground">
             Overall Strategy
           </p>
 
-          <p className="text-sm text-black">
+          <p className="text-sm text-foreground">
             {overallMessage}
           </p>
 
-          <p className="text-sm font-medium text-blue-600">
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
             {best.name === "Base Plan"
               ? "Continue with your current plan."
               : `Consider adopting "${best.name}" strategy for better outcomes.`}
@@ -127,7 +127,7 @@ export default function RecommendationPanel({ data }: Props) {
 
         <div className="space-y-3">
 
-          <p className="text-sm font-semibold text-black">
+          <p className="text-sm font-semibold text-foreground">
             Base Plan Advice
           </p>
 
@@ -139,15 +139,15 @@ export default function RecommendationPanel({ data }: Props) {
               return (
                 <div className="space-y-1">
 
-                  <p className="text-sm font-semibold text-black">
+                  <p className="text-sm font-semibold text-foreground">
                     {rec.label}
                   </p>
 
-                  <p className="text-sm text-black">
+                  <p className="text-sm text-foreground">
                     {rec.message}
                   </p>
 
-                  <p className="text-sm font-medium text-blue-600">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
                     {rec.action}
                   </p>
 
@@ -164,7 +164,7 @@ export default function RecommendationPanel({ data }: Props) {
         {data.scenarios.length > 0 && (
           <div className="space-y-3">
 
-            <p className="text-sm font-semibold text-black">
+            <p className="text-sm font-semibold text-foreground">
               Scenario Insights
             </p>
 
@@ -179,30 +179,30 @@ export default function RecommendationPanel({ data }: Props) {
                   key={i}
                   className={`p-4 border rounded-xl ${
                     isBest
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/50"
                       : "border-border/60"
                   }`}
                 >
 
                   <div className="flex justify-between mb-2">
 
-                    <p className="text-sm font-semibold text-black">
+                    <p className="text-sm font-semibold text-foreground">
                       {scenario.name}
                     </p>
 
                     {isBest && (
-                      <span className="text-xs text-blue-600">
+                      <span className="text-xs text-blue-600 dark:text-blue-400">
                         Best Option
                       </span>
                     )}
 
                   </div>
 
-                  <p className="text-sm text-black">
+                  <p className="text-sm text-foreground">
                     {rec.message}
                   </p>
 
-                  <p className="text-sm font-medium text-blue-600">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
                     {rec.action}
                   </p>
 
@@ -213,7 +213,7 @@ export default function RecommendationPanel({ data }: Props) {
           </div>
         )}
 
-        <div className="p-4 text-sm text-black border rounded-xl bg-muted/20 border-border/60">
+        <div className="p-4 text-sm text-foreground border rounded-xl bg-muted/20 border-border/60">
           <p className="font-semibold">ZikoML Transparency</p>
           <p className="mt-1 text-xs text-muted-foreground">
             The current analytics view includes saved RSI outputs and any available ML confidence/risk signals.

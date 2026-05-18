@@ -44,6 +44,7 @@ export default async function SimulationDetailPage(props: {
     currentSavings: sim.currentSavings?.toString() || "0",
     inflationRate: sim.inflationRate.toString(),
     growthModel: asGrowthModel(sim.growthModel),
+    projectionStrategy: "balanced",
     incomeType: asIncomeType(sim.incomeType),
     savingBehavior: asSavingBehavior(sim.savingBehavior),
     includeIrregular: sim.includeIrregular,

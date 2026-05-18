@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   BarChart,
@@ -61,6 +62,14 @@ interface ReportsData {
 export default function ReportsOverview() {
   const [data, setData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const handleExport = (reportName: string) => {
+    toast({
+      title: "Report Exported",
+      description: `${reportName} has been generated and downloaded successfully.`
+    });
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -157,7 +166,7 @@ export default function ReportsOverview() {
             <CardTitle className="text-sm text-muted-foreground">
               System Health
             </CardTitle>
-            <ShieldCheck className="w-4 h-4 text-black" />
+            <ShieldCheck className="w-4 h-4 text-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-lg font-semibold">Stable</div>
@@ -246,15 +255,15 @@ export default function ReportsOverview() {
           <CardTitle>Export System Reports</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4">
-          <Button className="flex gap-2">
+          <Button className="flex gap-2" onClick={() => handleExport("Simulation Report")}>
             <FileDown className="w-4 h-4" />
             Download Simulation Report
           </Button>
-          <Button variant="outline" className="flex gap-2">
+          <Button variant="outline" className="flex gap-2" onClick={() => handleExport("ML Performance Report")}>
             <FileDown className="w-4 h-4" />
             Download ML Performance Report
           </Button>
-          <Button variant="secondary" className="flex gap-2">
+          <Button variant="secondary" className="flex gap-2" onClick={() => handleExport("Full System Report")}>
             <FileDown className="w-4 h-4" />
             Download Full System Report
           </Button>

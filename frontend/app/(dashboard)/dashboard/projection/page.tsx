@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { withSaveLock } from "@/utils/saveLock"
 import ProjectionForm from "@/components/sections/projection/ProjectionForm"
@@ -10,7 +10,9 @@ import ScenarioTabs from "@/components/sections/scenarios/ScenarioTabs"
 import ScenarioPanel from "@/components/sections/scenarios/ScenarioPanel"
 import NamingDialog from "@/components/ui/NamingDialog"
 import ComprehensiveNamingDialog from "@/components/ui/ComprehensiveNamingDialog"
+import ImportDataView from "@/components/sections/projection/ImportDataView"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 import { ProjectionInputs } from "@/types/ProjectionInputs"
 import { ScenarioItem } from "@/types/scenario"
 
@@ -74,32 +76,45 @@ const getStoredState = (userId?: string) => {
 }
 
 export default function SimulationPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-muted-foreground">Loading simulation workspace...</div>}>
+      <SimulationPageContent />
+    </Suspense>
+  )
+}
+
+function SimulationPageContent() {
 
   /* ================= STATE LOADING ================= */
 
   const router = useRouter()
   const { data: session, status } = useSession()
   const userId = session?.user?.id
+  const { toast } = useToast()
 
   const [inputs, setInputs] = useState<ProjectionInputs>(defaultInputs)
   const [results, setResults] = useState<ProjectionResult | null>(null)
   
   const lastCalculatedInputs = useRef<ProjectionInputs | null>(null)
 
+  const searchParams = useSearchParams()
+  const loadId = searchParams?.get("load")
+
   useEffect(() => {
     if (status === "loading") return
 
     const storageKey = getStorageKey(userId)
-    const searchParams = new URLSearchParams(window.location.search)
-    const loadId = searchParams.get("load")
 
     if (loadId) {
+      console.log(`[LOAD SEQUENCE] Detected loadId: ${loadId}, fetching from backend...`)
       // Load from Backend if ?load= is present
       fetch(`/api/simulation/get?id=${loadId}`)
         .then(res => res.json())
         .then(data => {
+          console.log(`[LOAD SEQUENCE] API Response received:`, data)
           if (data.success && data.data) {
             const sim = data.data
+            console.log(`[LOAD SEQUENCE] Sim found, mapping inputs...`)
             
             const historicInputs: ProjectionInputs = {
               currentAge: sim.age.toString(),
@@ -128,13 +143,66 @@ export default function SimulationPage() {
                })
             }
 
-            // Clean the URL so refresh doesn't trigger API fetch again
-            window.history.replaceState(null, '', window.location.pathname)
+            if (sim.scenarios && sim.scenarios.length > 0) {
+              console.log(`[LOAD SEQUENCE] Found ${sim.scenarios.length} scenarios, mapping...`)
+              const loadedScenarios: ScenarioItem[] = sim.scenarios.map((s: any) => ({
+                id: s.id,
+                name: s.name || "Scenario",
+                inputs: {
+                  currentAge: s.age?.toString() || historicInputs.currentAge,
+                  retirementAge: s.retirementAge?.toString() || historicInputs.retirementAge,
+                  monthlyIncome: s.monthlyIncome?.toString() || historicInputs.monthlyIncome,
+                  monthlyContribution: s.monthlyContribution?.toString() || historicInputs.monthlyContribution,
+                  currentSavings: s.currentSavings?.toString() || historicInputs.currentSavings,
+                  inflationRate: s.inflationRate?.toString() || historicInputs.inflationRate,
+                  projectionStrategy: "balanced",
+                  growthModel: s.growthModel ? asGrowthModel(s.growthModel) : historicInputs.growthModel,
+                  incomeType: s.incomeType ? asIncomeType(s.incomeType) : historicInputs.incomeType,
+                  savingBehavior: s.savingBehavior ? asSavingBehavior(s.savingBehavior) : historicInputs.savingBehavior,
+                  includeIrregular: s.includeIrregular ?? historicInputs.includeIrregular,
+                  extraContribution: s.extraContribution?.toString() || historicInputs.extraContribution
+                },
+                results: s.result ? {
+                  projectedSavings: s.result.projectedSavings,
+                  estimatedMonthlyIncome: s.result.estimatedMonthlyIncome,
+                  inflationAdjustedValue: s.result.inflationAdjustedValue,
+                  rsiScore: s.result.rsiScore
+                } : null
+              }))
+              setScenarios(loadedScenarios)
+              setActive("base")
+            } else {
+              setScenarios([])
+              setActive("base")
+            }
+
+            // Skip cleaning the URL so we don't trigger the sessionStorage fallback
+            // router.replace(window.location.pathname, { scroll: false })
             setCurrentSimulationId(loadId)
+            
+            toast({
+              title: "Simulation Loaded",
+              description: `Successfully loaded historical data for "${sim.name || 'Simulation'}".`
+            })
+          } else {
+            console.error(`[LOAD SEQUENCE] Failed to load data. API returned:`, data)
+            toast({
+              title: "Load Failed",
+              description: "Could not load the requested simulation. It may have been deleted.",
+              variant: "destructive"
+            })
           }
         })
-        .catch(console.error)
+        .catch(err => {
+          console.error(`[LOAD SEQUENCE] Fetch error:`, err)
+          toast({
+            title: "Load Failed",
+            description: "A network error occurred while loading the simulation.",
+            variant: "destructive"
+          })
+        })
     } else {
+      console.log(`[LOAD SEQUENCE] No loadId detected. Attempting to load from sessionStorage...`)
       // Load from Session Storage using correct user context
       try {
         const saved = sessionStorage.getItem(storageKey)
@@ -152,12 +220,14 @@ export default function SimulationPage() {
         console.error("Failed to load session storage")
       }
     }
-  }, [status, userId])
+  }, [status, userId, loadId, router])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [mlOnline, setMlOnline] = useState<boolean | null>(null)
+  const [viewMode, setViewMode] = useState<"form" | "import">("form")
+  const [historicalDataState, setHistoricalDataState] = useState<any>(null)
   
   // Scenario management
   const [active, setActive] = useState<string>("base")
@@ -222,7 +292,7 @@ export default function SimulationPage() {
 
   /* ================= CALCULATE ================= */
 
-  const handleCalculate = async () => {
+  const handleCalculate = async (overrideInputs?: ProjectionInputs, overrideHistData?: any) => {
 
     if (!userId) {
       setError("User session not found.")
@@ -231,6 +301,13 @@ export default function SimulationPage() {
 
     setLoading(true)
     setError(null)
+
+    // Ensure we are in form view
+    setViewMode("form")
+
+    // Use passed inputs if available, otherwise fallback to state
+    const currentInputs = overrideInputs || inputs;
+    const currentHistData = overrideHistData || historicalDataState;
 
     try {
 
@@ -243,22 +320,23 @@ export default function SimulationPage() {
 
           userId,
 
-          age: Number(inputs.currentAge),
-          retirementAge: Number(inputs.retirementAge),
+          age: Number(currentInputs.currentAge),
+          retirementAge: Number(currentInputs.retirementAge),
 
-          monthlyIncome: Number(inputs.monthlyIncome),
-          monthlyContribution: Number(inputs.monthlyContribution),
+          monthlyIncome: Number(currentInputs.monthlyIncome),
+          monthlyContribution: Number(currentInputs.monthlyContribution),
 
-          currentSavings: Number(inputs.currentSavings || 0),
-          inflationRate: Number(inputs.inflationRate || 0),
+          currentSavings: Number(currentInputs.currentSavings || 0),
+          inflationRate: Number(currentInputs.inflationRate || 0),
 
-          projectionStrategy: inputs.projectionStrategy,
+          projectionStrategy: currentInputs.projectionStrategy,
 
-          growthModel: inputs.growthModel,
-          incomeType: inputs.incomeType,
-          savingBehavior: inputs.savingBehavior,
+          growthModel: currentInputs.growthModel,
+          incomeType: currentInputs.incomeType,
+          savingBehavior: currentInputs.savingBehavior,
 
-          lifestyle: "moderate"
+          lifestyle: "moderate",
+          historicalData: currentHistData
         })
       })
 
@@ -294,7 +372,7 @@ export default function SimulationPage() {
       setResults(mappedResults)
 
       // ✅ store snapshot of inputs used
-      lastCalculatedInputs.current = inputs
+      lastCalculatedInputs.current = currentInputs
 
       setIsDirty(false)
 
@@ -322,6 +400,8 @@ export default function SimulationPage() {
     setResults(null)
     setError(null)
     setIsDirty(false)
+    setViewMode("form")
+    setHistoricalDataState(null)
 
     lastCalculatedInputs.current = null
     setCurrentSimulationId(null)
@@ -335,15 +415,23 @@ export default function SimulationPage() {
 
   const handleAddScenario = async () => {
     if (!results) {
-      alert("Please run a base simulation first before creating scenarios.")
-      return
+      toast({
+        title: "Action Required",
+        description: "Please run a base simulation first before creating scenarios.",
+        variant: "destructive"
+      });
+      return;
     }
 
     const MAX_SCENARIOS = 3
     
     if (scenarios.length >= MAX_SCENARIOS) {
-      alert("You can only create up to 3 scenarios to keep things organized.")
-      return
+      toast({
+        title: "Limit Reached",
+        description: "You can only create up to 3 scenarios to keep things organized.",
+        variant: "destructive"
+      });
+      return;
     }
 
     const newScenario: ScenarioItem = {
@@ -358,18 +446,21 @@ export default function SimulationPage() {
   }
 
   const handleDeleteScenario = (scenarioId: string) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this scenario?\n\nThis action cannot be undone."
-    );
-
-    if (confirmDelete) {
-      setScenarios(prev => prev.filter(s => s.id !== scenarioId));
-
-      // If we deleted the active scenario, switch to base
-      if (active === scenarioId) {
-        setActive("base");
+    toast({
+      title: "Delete Scenario",
+      description: "Are you sure you want to delete this scenario? This action cannot be undone.",
+      variant: "destructive",
+      duration: 10000,
+      action: {
+        label: "Delete",
+        onClick: () => {
+          setScenarios(prev => prev.filter(s => s.id !== scenarioId));
+          if (active === scenarioId) {
+            setActive("base");
+          }
+        }
       }
-    }
+    });
   }
 
   const handleRenameScenario = (scenarioId: string, newName: string) => {
@@ -418,7 +509,12 @@ export default function SimulationPage() {
           </p>
         </div>
         
-        <Button variant="outline" onClick={handleReset}>Start New Simulation</Button>
+        <div className="flex gap-2">
+          {viewMode === "form" && (
+            <Button variant="outline" onClick={() => setViewMode("import")}>Upload Ledger</Button>
+          )}
+          <Button variant="outline" onClick={handleReset}>Start New</Button>
+        </div>
       </div>
 
       <div
@@ -439,9 +535,23 @@ export default function SimulationPage() {
         </div>
       )}
 
-      {/* ================= SCENARIO TABS ================= */}
-      <ScenarioTabs
-        scenarios={scenarios}
+      {viewMode === "import" ? (
+        <ImportDataView 
+          onCancel={() => setViewMode("form")}
+          onRun={(newInputs, histData) => {
+            const finalInputs = { ...inputs, ...newInputs } as ProjectionInputs;
+            setInputs(finalInputs)
+            setHistoricalDataState(histData)
+            
+            // Switch back to the main form so the user can review/fill missing data and click 'Run Projection' themselves!
+            setViewMode("form")
+          }}
+        />
+      ) : (
+        <>
+          {/* ================= SCENARIO TABS ================= */}
+          <ScenarioTabs
+            scenarios={scenarios}
         active={active}
         onChange={setActive}
         onAdd={handleAddScenario}
@@ -455,6 +565,7 @@ export default function SimulationPage() {
         isBase={active === "base"}
         hasScenarios={scenarios.length > 0}
         baseInputs={inputs}
+        baseResults={results}
         scenario={active === "base" ? null : scenarios.find(s => s.id === active) || null}
         onChange={(id, data) => {
           setScenarios(prev => prev.map(s => s.id === id ? { ...s, inputs: data } : s))
@@ -474,140 +585,199 @@ export default function SimulationPage() {
           const hasResults = active === "base" ? results : scenarios.find(s => s.id === active)?.results
 
           if (!hasResults) {
-            alert("Please run a simulation first before saving.")
+            toast({
+              title: "Action Required",
+              description: "Please run a simulation first before saving.",
+              variant: "destructive"
+            });
             return
           }
 
-          setComprehensiveNamingCallback(() => async (simName: string, scenarioNames: Record<string, string>) => {
-            const doSave = async (force: boolean) => {
-              console.log("[SAVE TRACE] Callback executing, simName:", simName, "type:", typeof simName)
-              console.log("[SAVE TRACE] scenarioNames:", scenarioNames)
-              console.log("[SAVE FLOW] Naming dialog confirmed, starting save...")
-              
-              // Prevent double execution with global lock
-              if (isSavingRef.current || globalSaveLockRef.current) {
-                console.log("[SAVE TRACE] Blocked - already saving, isSavingRef:", isSavingRef.current, "global:", globalSaveLockRef.current)
-                return
-              }
-              isSavingRef.current = true
-              globalSaveLockRef.current = true
-              
-              const dataToSave = lastCalculatedInputs.current || inputs
+          const proceedToNaming = () => {
+            setComprehensiveNamingCallback(() => async (simName: string, scenarioNames: Record<string, string>) => {
+              const doSave = async (force: boolean) => {
+                console.log("[SAVE TRACE] Callback executing, simName:", simName, "type:", typeof simName)
+                console.log("[SAVE TRACE] scenarioNames:", scenarioNames)
+                console.log("[SAVE FLOW] Naming dialog confirmed, starting save...")
+                
+                // Prevent double execution with global lock
+                if (isSavingRef.current || globalSaveLockRef.current) {
+                  console.log("[SAVE TRACE] Blocked - already saving, isSavingRef:", isSavingRef.current, "global:", globalSaveLockRef.current)
+                  return
+                }
+                isSavingRef.current = true
+                globalSaveLockRef.current = true
+                
+                const dataToSave = lastCalculatedInputs.current || inputs
 
-              if (!dataToSave.currentAge || !dataToSave.retirementAge) {
-                alert("Missing age details. Please fill out the form and run a projection first.")
-                isSavingRef.current = false
-                globalSaveLockRef.current = false
-                return
-              }
-
-              if (!results) {
-                alert("Please run a simulation first before saving.")
-                isSavingRef.current = false
-                globalSaveLockRef.current = false
-                return
-              }
-
-              if (!userId) {
-                alert("You must be logged in to save simulations.")
-                isSavingRef.current = false
-                globalSaveLockRef.current = false
-                return
-              }
-
-              try {
-                // Use user-provided names directly (validation in dialog ensures they're not empty)
-                if (!simName || typeof simName !== 'string') {
-                  console.error("[SAVE ERROR] simName is invalid:", simName)
-                  alert("Invalid simulation name provided. Please try again.")
+                if (!dataToSave.currentAge || !dataToSave.retirementAge) {
+                  toast({
+                    title: "Action Required",
+                    description: "Missing age details. Please fill out the form and run a projection first.",
+                    variant: "destructive"
+                  });
                   isSavingRef.current = false
                   globalSaveLockRef.current = false
                   return
                 }
-                const simulationName = simName.trim()
 
-                // Update scenario names with user-provided names or defaults if empty
-                const updatedScenarios = scenarios.map((scenario, index) => ({
-                  ...scenario,
-                  name: (scenarioNames[scenario.id] && typeof scenarioNames[scenario.id] === 'string' && scenarioNames[scenario.id].trim() !== "") 
-                    ? scenarioNames[scenario.id].trim() 
-                    : generateDefaultName("scenario", index)
-                }))
-
-                // Flatten the data structure to match API expectations
-                console.log("[SAVE FLOW] Sending API request [PROJECTION PAGE]...")
-                let res;
-                try {
-                  res = await withSaveLock(async () => {
-                  const response = await fetch("/api/simulation/save", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      userId,
-                      name: simulationName,
-                      age: Number(dataToSave.currentAge),
-                      retirementAge: Number(dataToSave.retirementAge),
-                      monthlyIncome: Number(dataToSave.monthlyIncome),
-                      monthlyContribution: Number(dataToSave.monthlyContribution),
-                      currentSavings: Number(dataToSave.currentSavings || 0),
-                      inflationRate: Number(dataToSave.inflationRate || 0),
-                      growthModel: dataToSave.growthModel,
-                      incomeType: dataToSave.incomeType,
-                      savingBehavior: dataToSave.savingBehavior,
-                      includeIrregular: dataToSave.includeIrregular || false,
-                      extraContribution: dataToSave.extraContribution || "",
-                      lifestyle: "moderate",
-                      results: results,
-                      scenarios: updatedScenarios,
-                      forceSave: force
-                    })
+                if (!results) {
+                  toast({
+                    title: "Action Required",
+                    description: "Please run a simulation first before saving.",
+                    variant: "destructive"
                   });
-                  return response;
-                });
-                } catch (error) {
-                  console.log("[SAVE FLOW] Save blocked by global lock (expected behavior)")
-                  // Early return if save is blocked by global lock
                   isSavingRef.current = false
                   globalSaveLockRef.current = false
-                  return;
+                  return
                 }
 
-                const data = await res.json()
+                if (!userId) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "You must be logged in to save simulations.",
+                    variant: "destructive"
+                  });
+                  isSavingRef.current = false
+                  globalSaveLockRef.current = false
+                  return
+                }
 
-                if (!data.success) {
-                  if (data.isDuplicate) {
+                try {
+                  // Use user-provided names directly (validation in dialog ensures they're not empty)
+                  if (!simName || typeof simName !== 'string') {
+                    console.error("[SAVE ERROR] simName is invalid:", simName)
+                    toast({
+                      title: "Invalid Name",
+                      description: "Invalid simulation name provided. Please try again.",
+                      variant: "destructive"
+                    });
                     isSavingRef.current = false
                     globalSaveLockRef.current = false
-                    const confirmSave = window.confirm(data.message + "\n\nDo you want to save it anyway?");
-                    if (confirmSave) {
-                      // Retry save
-                      doSave(true);
-                    }
+                    return
+                  }
+                  const simulationName = simName.trim()
+
+                  // Update scenario names with user-provided names or defaults if empty
+                  const updatedScenarios = scenarios.map((scenario, index) => ({
+                    ...scenario,
+                    name: (scenarioNames[scenario.id] && typeof scenarioNames[scenario.id] === 'string' && scenarioNames[scenario.id].trim() !== "") 
+                      ? scenarioNames[scenario.id].trim() 
+                      : generateDefaultName("scenario", index)
+                  }))
+
+                  // Flatten the data structure to match API expectations
+                  console.log("[SAVE FLOW] Sending API request [PROJECTION PAGE]...")
+                  let res;
+                  try {
+                    res = await withSaveLock(async () => {
+                    const response = await fetch("/api/simulation/save", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userId,
+                        name: simulationName,
+                        age: Number(dataToSave.currentAge),
+                        retirementAge: Number(dataToSave.retirementAge),
+                        monthlyIncome: Number(dataToSave.monthlyIncome),
+                        monthlyContribution: Number(dataToSave.monthlyContribution),
+                        currentSavings: Number(dataToSave.currentSavings || 0),
+                        inflationRate: Number(dataToSave.inflationRate || 0),
+                        growthModel: dataToSave.growthModel,
+                        incomeType: dataToSave.incomeType,
+                        savingBehavior: dataToSave.savingBehavior,
+                        includeIrregular: dataToSave.includeIrregular || false,
+                        extraContribution: dataToSave.extraContribution || "",
+                        lifestyle: "moderate",
+                        historicalData: historicalDataState,
+                        results: results,
+                        scenarios: updatedScenarios,
+                        forceSave: force
+                      })
+                    });
+                    return response;
+                  });
+                  } catch (error) {
+                    console.log("[SAVE FLOW] Save blocked by global lock (expected behavior)")
+                    // Early return if save is blocked by global lock
+                    isSavingRef.current = false
+                    globalSaveLockRef.current = false
                     return;
                   }
-                  throw new Error(data.message)
+
+                  const data = await res.json()
+
+                  if (!data.success) {
+                    if (data.isDuplicate) {
+                      isSavingRef.current = false
+                      globalSaveLockRef.current = false
+                      toast({
+                        title: "Duplicate Simulation",
+                        description: data.message,
+                        variant: "destructive",
+                        duration: 10000,
+                        action: {
+                          label: "Save Anyway",
+                          onClick: () => doSave(true)
+                        }
+                      });
+                      return;
+                    }
+                    throw new Error(data.message)
+                  }
+
+                  toast({
+                    title: "Simulation Saved",
+                    description: `"${simulationName}" saved successfully with ${updatedScenarios.length} scenario(s)!`
+                  });
+                  console.log("[SAVE FLOW] Save completed successfully [PROJECTION PAGE]")
+                  handleReset()
+
+                } catch (err) {
+                  console.error(err)
+                  toast({
+                    title: "Error",
+                    description: "Failed to save simulation",
+                    variant: "destructive"
+                  });
+                } finally {
+                  // Reset both saving locks
+                  isSavingRef.current = false
+                  globalSaveLockRef.current = false
                 }
-
-                alert(`"${simulationName}" saved successfully with ${updatedScenarios.length} scenario(s)!`)
-                console.log("[SAVE FLOW] Save completed successfully [PROJECTION PAGE]")
-                handleReset()
-
-              } catch (err) {
-                console.error(err)
-                alert("Failed to save simulation")
-              } finally {
-                // Reset both saving locks
-                isSavingRef.current = false
-                globalSaveLockRef.current = false
               }
-            }
-            doSave(false);
-          })
+              doSave(false);
+            })
 
-          // Open naming dialog immediately after setting the callback
-          setComprehensiveNamingOpen(true)
+            // Open naming dialog immediately after setting the callback
+            setComprehensiveNamingOpen(true)
+          }
+
+          if (scenarios.length === 0) {
+            toast({
+              title: "Save Base Simulation",
+              description: "You haven't added any scenarios. Are you sure you'd like to save just the base simulation?",
+              duration: 10000,
+              action: {
+                label: "Save Anyway",
+                onClick: proceedToNaming
+              }
+            })
+          } else {
+            toast({
+              title: "Save Simulation & Scenarios",
+              description: `Are you sure you'd like to save this simulation along with its ${scenarios.length} scenario(s)?`,
+              duration: 10000,
+              action: {
+                label: "Confirm Save",
+                onClick: proceedToNaming
+              }
+            })
+          }
         }}
       />
+      </>
+      )}
 
       {/* Comprehensive Naming Dialog */}
       <ComprehensiveNamingDialog

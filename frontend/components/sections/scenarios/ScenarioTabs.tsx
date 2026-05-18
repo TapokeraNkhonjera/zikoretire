@@ -28,11 +28,7 @@ export default function ScenarioTabs({
 }: ScenarioTabsProps) {
 
   const handleDeleteScenario = (scenarioId: string, scenarioName: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${scenarioName}"?\n\nThis action cannot be undone.`
-    );
-
-    if (confirmDelete && onDelete) {
+    if (onDelete) {
       onDelete(scenarioId);
     }
   };

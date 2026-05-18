@@ -96,7 +96,7 @@ export default function RsiAnalysis({ data }: Props) {
     <Card className="border-border/60">
 
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-black">
+        <CardTitle className="text-base font-semibold text-foreground">
           RSI Analysis
         </CardTitle>
       </CardHeader>
@@ -115,17 +115,17 @@ export default function RsiAnalysis({ data }: Props) {
             return (
               <div key={i} className="space-y-1">
 
-                <div className="flex justify-between text-sm font-medium text-black">
+                <div className="flex justify-between text-sm font-medium text-foreground">
 
                   <span>
                     {row.name}
                     {isBest && (
-                      <span className="ml-2 text-xs text-blue-600">
+                      <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
                         (Best)
                       </span>
                     )}
                     {isWorst && (
-                      <span className="ml-2 text-xs text-red-600">
+                      <span className="ml-2 text-xs text-red-600 dark:text-red-400">
                         (Risk)
                       </span>
                     )}
@@ -158,11 +158,11 @@ export default function RsiAnalysis({ data }: Props) {
 
         <div className="p-4 space-y-2 border rounded-xl bg-muted/30 border-border/60">
 
-          <p className="text-sm font-semibold text-black">
+          <p className="text-sm font-semibold text-foreground">
             Key Insight
           </p>
 
-          <p className="text-sm text-black">
+          <p className="text-sm text-foreground">
             {best.name === worst.name
               ? "All strategies perform similarly with minimal variation."
               : `${best.name} significantly outperforms ${worst.name} in retirement readiness.`
@@ -175,21 +175,21 @@ export default function RsiAnalysis({ data }: Props) {
 
         <div className="p-4 space-y-2 border rounded-xl border-border/60">
 
-          <p className="text-sm font-semibold text-black">
+          <p className="text-sm font-semibold text-foreground">
             {recommendation.title}
           </p>
 
-          <p className="text-sm text-black">
+          <p className="text-sm text-foreground">
             {recommendation.message}
           </p>
 
-          <p className="text-sm font-medium text-blue-600">
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
             {recommendation.action}
           </p>
 
         </div>
 
-        <div className="p-4 text-sm text-black border rounded-xl bg-muted/20 border-border/60">
+        <div className="p-4 text-sm text-foreground border rounded-xl bg-muted/20 border-border/60">
           <p className="font-semibold">ML Confidence Transparency</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Confidence shows model certainty when ML was used. Fallback runs display N/A.

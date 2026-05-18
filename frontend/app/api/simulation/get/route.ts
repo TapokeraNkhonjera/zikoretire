@@ -16,7 +16,12 @@ export async function GET(req: Request) {
     const simulation = await prisma.simulation.findUnique({
       where: { id },
       include: {
-        result: true
+        result: true,
+        scenarios: {
+          include: {
+            result: true
+          }
+        }
       }
     })
 

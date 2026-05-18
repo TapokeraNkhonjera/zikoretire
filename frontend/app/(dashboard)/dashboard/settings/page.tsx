@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -20,17 +20,18 @@ import {
   User,
   Camera,
   Upload,
-  Check,
   AlertCircle,
   Moon,
   Sun,
   Monitor
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const { updateSetting } = useSettings();
   
   // Settings states
   const [inlineNudgesEnabled, setInlineNudgesEnabled] = useState(true);
@@ -42,11 +43,15 @@ export default function SettingsPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [mlTrainingConsent, setMlTrainingConsent] = useState(false);
   
   // Loading states
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [dataOperationLoading, setDataOperationLoading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load user data and settings on mount
   useEffect(() => {
@@ -58,6 +63,7 @@ export default function SettingsPage() {
           setName(data.data.name || '');
           setEmail(data.data.email || '');
           setAvatarUrl(data.data.image || '');
+          setMlTrainingConsent(!!data.data.mlTrainingConsent);
         }
       } catch (error) {
         console.error('Failed to load user data:', error);
@@ -199,6 +205,43 @@ export default function SettingsPage() {
     }
   };
   
+  // Handle ML consent update
+  const handleMlConsentChange = async (checked: boolean) => {
+    setMlTrainingConsent(checked);
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'ml_consent',
+          mlTrainingConsent: checked
+        })
+      });
+      if (response.ok) {
+        toast({
+          title: "Settings updated",
+          description: checked 
+            ? "You have opted in to ML data collection." 
+            : "You have opted out of ML data collection.",
+        });
+      } else {
+        setMlTrainingConsent(!checked);
+        toast({
+          title: "Update failed",
+          description: "Failed to update ML data collection settings.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      setMlTrainingConsent(!checked);
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating settings.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   
   const handleSettingChange = (setting: string, value: boolean | string) => {
     const newSettings = {
@@ -212,14 +255,17 @@ export default function SettingsPage() {
       case 'inlineNudges':
         setInlineNudgesEnabled(value as boolean);
         newSettings.inlineNudgesEnabled = value as boolean;
+        updateSetting('inlineNudgesEnabled', value as boolean);
         break;
       case 'suggestionCards':
         setSuggestionCardsEnabled(value as boolean);
         newSettings.suggestionCardsEnabled = value as boolean;
+        updateSetting('suggestionCardsEnabled', value as boolean);
         break;
       case 'notifications':
         setNotificationsEnabled(value as boolean);
         newSettings.notificationsEnabled = value as boolean;
+        updateSetting('notificationsEnabled', value as boolean);
         break;
       case 'theme':
         setTheme(value as 'light' | 'dark');
@@ -227,6 +273,89 @@ export default function SettingsPage() {
         break;
     }
     saveSettings(newSettings);
+  };
+
+  const handleExportData = async () => {
+    setDataOperationLoading(true);
+    try {
+      const response = await fetch('/api/user/data');
+      if (response.ok) {
+        const json = await response.json();
+        
+        // Create downloadable JSON file
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json.data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `zikoretire-backup-${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        
+        toast({ title: "Export Successful", description: "Your data has been successfully downloaded." });
+      } else {
+        toast({ title: "Export Failed", description: "Failed to gather your data.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Export Error", description: "An unexpected error occurred during export.", variant: "destructive" });
+    } finally {
+      setDataOperationLoading(false);
+    }
+  };
+
+  const handleClearData = () => {
+    toast({
+      title: "Clear All Data",
+      description: "Are you sure? This will delete all your simulations and scenarios. This cannot be undone.",
+      variant: "destructive",
+      duration: 10000,
+      action: {
+        label: "Yes, Clear Everything",
+        onClick: async () => {
+          setDataOperationLoading(true);
+          try {
+            const response = await fetch('/api/user/data', { method: 'DELETE' });
+            if (response.ok) {
+              toast({ title: "Data Cleared", description: "All your retirement data has been erased." });
+            } else {
+              toast({ title: "Error", description: "Failed to clear your data.", variant: "destructive" });
+            }
+          } catch (error) {
+            toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+          } finally {
+            setDataOperationLoading(false);
+          }
+        }
+      }
+    });
+  };
+
+  const handleRestoreData = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setDataOperationLoading(true);
+    try {
+      const fileText = await file.text();
+      const backupData = JSON.parse(fileText);
+
+      const response = await fetch('/api/user/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backupData)
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        toast({ title: "Restore Successful", description: result.message });
+      } else {
+        toast({ title: "Restore Failed", description: result.message || "Failed to restore from backup.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Invalid File", description: "The backup file is corrupt or invalid.", variant: "destructive" });
+    } finally {
+      setDataOperationLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
+    }
   };
 
   return (
@@ -440,14 +569,30 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5 pr-4">
+                <Label htmlFor="ml-consent-toggle">Machine Learning Data Collection</Label>
+                <p className="text-sm text-muted-foreground">
+                  Allow ZikoRetire to collect anonymized interaction data to improve AI recommendations. Turning this off will exclude your future data from training.
+                </p>
+              </div>
+              <Switch
+                id="ml-consent-toggle"
+                checked={mlTrainingConsent}
+                onCheckedChange={handleMlConsentChange}
+              />
+            </div>
+            
+            <Separator />
+
             <div className="space-y-2">
               <p className="text-sm font-medium">Data Usage</p>
               <p className="text-sm text-muted-foreground">
                 Your retirement data is encrypted and stored securely
               </p>
             </div>
-            <Button variant="outline" size="sm" className="w-full">
-              Export My Data
+            <Button variant="outline" size="sm" className="w-full" onClick={handleExportData} disabled={dataOperationLoading}>
+              {dataOperationLoading ? "Processing..." : "Export My Data"}
             </Button>
           </CardContent>
         </Card>
@@ -492,13 +637,20 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" size="sm" className="w-full" onClick={handleExportData} disabled={dataOperationLoading}>
               Backup Data
             </Button>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={dataOperationLoading}>
               Restore Data
             </Button>
-            <Button variant="destructive" size="sm" className="w-full">
+            <input 
+              type="file" 
+              accept=".json" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleRestoreData} 
+            />
+            <Button variant="destructive" size="sm" className="w-full" onClick={handleClearData} disabled={dataOperationLoading}>
               Clear All Data
             </Button>
           </CardContent>

@@ -1,11 +1,15 @@
 "use client"
 
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+
 import { useEffect, useState } from "react"
 import HistoryHeader from "./HistoryHeader"
 import HistoryStats from "./HistoryStats"
 import HistoryTable from "./HistoryTable"
 import ExportInfoCard from "./HistoryExportCard"
 import { usePriorityUpdates } from "@/hooks/usePriorityUpdates"
+import { useToast } from "@/hooks/use-toast"
 
 import {
   HistorySimulation
@@ -28,20 +32,41 @@ export default function HistoryClient({
     }
   }, [lastPriorityChange])
 
+  const { toast } = useToast()
+
   function handlePDF() {
-    // Generate PDF content
-    const pdfContent = generatePDFContent(simulations);
+    const doc = new jsPDF()
     
-    // Create blob and download
-    const blob = new Blob([pdfContent], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `zikoretire-history-${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    doc.setFontSize(16)
+    doc.text('ZikoRetire Simulation History', 14, 20)
+    
+    doc.setFontSize(11)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
+
+    const tableData = simulations.map(sim => [
+      new Date(sim.createdAt).toLocaleDateString(),
+      sim.incomeType,
+      `MWK ${sim.result?.monthlyIncome?.toLocaleString() || 'N/A'}`,
+      `MWK ${sim.result?.projectedValue?.toLocaleString() || 'N/A'}`,
+      `${sim.result?.rsiScore?.toFixed(1) || 'N/A'}%`,
+      sim.result?.readinessLevel || 'N/A'
+    ])
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Date', 'Income Type', 'Monthly Income', 'Projected Value', 'RSI Score', 'Status']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+      styles: { fontSize: 10 }
+    })
+    
+    doc.save(`zikoretire-history-${new Date().toISOString().split('T')[0]}.pdf`)
+    
+    toast({
+      title: "PDF Downloaded",
+      description: "Your simulation history report has been successfully downloaded."
+    })
   }
 
   function handleCSV() {
@@ -58,37 +83,23 @@ export default function HistoryClient({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }
-
-  function generatePDFContent(data: HistorySimulation[]) {
-    // Simple PDF content generation
-    let content = 'ZikoRetire Simulation History\n\n';
-    content += 'Generated on: ' + new Date().toLocaleDateString() + '\n\n';
     
-    data.forEach((sim, index) => {
-      content += `Simulation ${index + 1}\n`;
-      content += `Date: ${new Date(sim.createdAt).toLocaleDateString()}\n`;
-      content += `Monthly Income: MWK ${sim.monthlyIncome.toLocaleString()}\n`;
-      content += `Income Type: ${sim.incomeType}\n`;
-      content += `Projected Value: MWK ${sim.result?.projectedValue?.toLocaleString() || 'N/A'}\n`;
-      content += `RSI Score: ${sim.result?.rsiScore || 'N/A'}\n`;
-      content += `Readiness Level: ${sim.result?.readinessLevel || 'N/A'}\n`;
-      content += '----------------------------------------\n\n';
-    });
-    
-    return content;
+    toast({
+      title: "CSV Exported",
+      description: "Your simulation history data has been exported successfully."
+    })
   }
 
   function generateCSVContent(data: HistorySimulation[]) {
     // Generate CSV content
-    const headers = ['Date', 'Monthly Income', 'Income Type', 'Projected Value', 'RSI Score', 'Readiness Level'];
+    const headers = ['Date', 'Income Type', 'Monthly Income', 'Projected Value', 'RSI Score', 'Readiness Level'];
     let csvContent = headers.join(',') + '\n';
     
     data.forEach(sim => {
       const row = [
         new Date(sim.createdAt).toLocaleDateString(),
-        sim.monthlyIncome,
         sim.incomeType,
+        sim.result?.monthlyIncome || '',
         sim.result?.projectedValue || '',
         sim.result?.rsiScore || '',
         sim.result?.readinessLevel || ''

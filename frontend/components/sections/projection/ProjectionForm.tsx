@@ -5,10 +5,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Toggle } from "./toggle"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calculator, RotateCcw, ChevronDown } from "lucide-react"
+import { Calculator, RotateCcw, ChevronDown, AlertTriangle, Info } from "lucide-react"
 import InfoTooltip from "./infotooltip"
+import { useSettings } from "@/contexts/SettingsContext"
 
 import { ProjectionInputs } from "@/types/ProjectionInputs"
 
@@ -28,6 +30,80 @@ export default function ProjectionForm({
 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [contributionMode, setContributionMode] = useState<"amount" | "percentage">("amount")
+  const [contributionPercentage, setContributionPercentage] = useState<string>("10")
+
+  const { settings } = useSettings()
+
+  /* ================= COMPLIANCE VALIDATION ================= */
+
+  // Strategy classification for compliance
+  const classifyStrategy = (strategy: string): "formal" | "informal" => {
+    const formalStrategies = [
+      "conservative", "balanced", "aggressive", "contribution_growth", 
+      "sustainability", "early_retirement", "inflation_stress"
+    ]
+    const informalStrategies = ["informal", "seasonal"]
+    
+    if (formalStrategies.includes(strategy)) return "formal"
+    if (informalStrategies.includes(strategy)) return "informal"
+    
+    // Default to formal for unknown strategies
+    return "formal"
+  }
+
+  // Calculate early retirement penalty
+  const calculateEarlyRetirementPenalty = (retirementAge: number): { 
+    penaltyRate: number; 
+    complianceWarning?: string 
+  } => {
+    const statutoryRetirementAge = 50
+    
+    // Only apply penalty if retirement age is below statutory age
+    if (retirementAge >= statutoryRetirementAge) {
+      return { 
+        penaltyRate: 0 
+      }
+    }
+    
+    // Calculate penalty: 3% per year below 50
+    const yearsBelowStatutory = statutoryRetirementAge - retirementAge
+    const penaltyRate = 1 - Math.pow(1 - 0.03, yearsBelowStatutory)
+    
+    const complianceWarning = `Retiring before the statutory age of 50 in the formal sector results in a 3% annual benefit reduction per the Pension Act. Total reduction: ${(penaltyRate * 100).toFixed(1)}%`
+    
+    return { 
+      penaltyRate, 
+      complianceWarning 
+    }
+  }
+
+  // Get real-time compliance warning
+  const getComplianceWarning = () => {
+    if (!inputs.retirementAge || !inputs.projectionStrategy) {
+      return null
+    }
+
+    const isFormalSector = classifyStrategy(inputs.projectionStrategy) === "formal"
+    
+    if (!isFormalSector) {
+      return null // No penalty for informal sector
+    }
+
+    const penaltyResult = calculateEarlyRetirementPenalty(Number(inputs.retirementAge))
+    
+    if (penaltyResult.penaltyRate > 0) {
+      return {
+        type: "warning" as const,
+        message: penaltyResult.complianceWarning,
+        penalty: penaltyResult.penaltyRate
+      }
+    }
+
+    return null
+  }
+
+  const complianceWarning = getComplianceWarning()
 
   /* ================= SAFE UPDATE ================= */
 
@@ -179,6 +255,19 @@ export default function ProjectionForm({
             "Estimates how long retirement income may last after retirement."}
         </p>
         
+        {inputs.projectionStrategy && (
+          <div className="mt-1 text-xs">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              classifyStrategy(inputs.projectionStrategy) === "formal" 
+                ? "bg-blue-100 text-blue-700" 
+                : "bg-green-100 text-green-700"
+            }`}>
+              {classifyStrategy(inputs.projectionStrategy) === "formal" ? "Formal Sector" : "Informal Sector"}
+              {classifyStrategy(inputs.projectionStrategy) === "formal" && " • Pension Act applies"}
+            </span>
+          </div>
+        )}
+        
         <div className="mt-1">
           <Link 
             href="/dashboard/strategies" 
@@ -243,29 +332,87 @@ export default function ProjectionForm({
           />
         </div>
 
+        {/* ================= COMPLIANCE WARNING ================= */}
+        {settings.inlineNudgesEnabled && complianceWarning && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <div className="font-semibold mb-1">Early Retirement Penalty Warning</div>
+              <div className="text-sm">{complianceWarning.message}</div>
+              <div className="text-xs mt-2 font-medium">
+                Strategy: {classifyStrategy(inputs.projectionStrategy)} Sector • 
+                Your projection will be reduced by {(complianceWarning.penalty * 100).toFixed(1)}%
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Contribution */}
-        <div className="space-y-2">
-          <Label>Monthly Contribution (MK)</Label>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Monthly Contribution</Label>
+          </div>
 
-          <input
-            type="range"
-            min={0}
-            max={200000}
-            step={1000}
-            value={inputs.monthlyContribution || 0}
-            onChange={(e) =>
-              updateField("monthlyContribution", e.target.value)
-            }
-            className="w-full h-2 rounded-lg accent-primary bg-muted"
-          />
+          <Tabs
+            value={contributionMode}
+            onValueChange={(val) => {
+              setContributionMode(val as "amount" | "percentage")
+              if (val === "percentage") {
+                 const amount = (Number(contributionPercentage) / 100) * (Number(inputs.monthlyIncome) || 0);
+                 updateField("monthlyContribution", amount.toString());
+              }
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="amount">Fixed Amount</TabsTrigger>
+              <TabsTrigger value="percentage">% of Income</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-          <Input
-            type="number"
-            value={inputs.monthlyContribution}
-            onChange={(e) =>
-              updateField("monthlyContribution", e.target.value)
-            }
-          />
+          {contributionMode === "amount" ? (
+            <div className="space-y-2 pt-2">
+              <input
+                type="range"
+                min={0}
+                max={200000}
+                step={1000}
+                value={inputs.monthlyContribution || 0}
+                onChange={(e) =>
+                  updateField("monthlyContribution", e.target.value)
+                }
+                className="w-full h-2 rounded-lg accent-primary bg-muted"
+              />
+
+              <Input
+                type="number"
+                value={inputs.monthlyContribution}
+                onChange={(e) =>
+                  updateField("monthlyContribution", e.target.value)
+                }
+              />
+            </div>
+          ) : (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={contributionPercentage}
+                  onChange={(e) => {
+                    setContributionPercentage(e.target.value)
+                    const amount = (Number(e.target.value) / 100) * (Number(inputs.monthlyIncome) || 0);
+                    updateField("monthlyContribution", amount.toString());
+                  }}
+                  placeholder="e.g. 10"
+                />
+                <span className="text-sm font-medium">%</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">
+                Equivalent to: MK {((Number(contributionPercentage) / 100) * (Number(inputs.monthlyIncome) || 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -277,9 +424,19 @@ export default function ProjectionForm({
           <Input
             type="number"
             value={inputs.monthlyIncome}
-            onChange={(e) =>
-              updateField("monthlyIncome", e.target.value)
-            }
+            onChange={(e) => {
+              const newIncome = e.target.value;
+              if (contributionMode === "percentage" && contributionPercentage !== "") {
+                const amount = (Number(contributionPercentage) / 100) * (Number(newIncome) || 0);
+                setInputs({
+                  ...inputs,
+                  monthlyIncome: newIncome,
+                  monthlyContribution: amount.toString(),
+                });
+              } else {
+                updateField("monthlyIncome", newIncome);
+              }
+            }}
           />
         </div>
 

@@ -79,6 +79,7 @@ model User {
 
   emailVerified DateTime?
   image         String?
+  mlTrainingConsent Boolean @default(false)
 
   simulations Simulation[]
   scenarios   Scenario[]
@@ -123,6 +124,8 @@ model Simulation {
   extraContribution Float?
 
   lifestyle String
+
+  historicalData Json?
 
   /**
    * ================= PRIORITY =================
@@ -207,6 +210,8 @@ model Scenario {
   extraContribution Float?
 
   lifestyle String?
+
+  historicalData Json?
 
   /**
    * ================= RELATIONS =================

@@ -1,5 +1,8 @@
 "use client"
 
+import { motion, useSpring, useTransform } from "framer-motion"
+import { useEffect } from "react"
+
 export default function RsiBar({
   score,
   readinessLevel
@@ -12,6 +15,17 @@ export default function RsiBar({
      SAFETY
   =============================== */
   const safeScore = Math.max(0, Math.min(100, score || 0))
+
+  /* ===============================
+     ANIMATION (framer-motion)
+  =============================== */
+  const springScore = useSpring(0, { bounce: 0, duration: 2000 })
+  
+  useEffect(() => {
+    springScore.set(safeScore)
+  }, [safeScore, springScore])
+
+  const displayScore = useTransform(springScore, (val) => val.toFixed(1))
 
   /* ===============================
      COLOR SYSTEM (aligned)
@@ -82,19 +96,21 @@ export default function RsiBar({
         <div className="relative w-full h-4 overflow-hidden rounded-full bg-muted/50 border border-border/50 shadow-inner">
           
           {/* BAR FILL */}
-          <div
+          <motion.div
             className={`
-              absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out
+              absolute top-0 left-0 h-full rounded-full
               ${getColor()}
             `}
+            initial={{ width: 0 }}
+            animate={{ width: `${safeScore}%` }}
+            transition={{ duration: 2, ease: "easeOut" }}
             style={{ 
-              width: `${safeScore}%`,
               boxShadow: "inset 0 2px 4px rgba(255,255,255,0.2)"
             }}
           >
             {/* Inner gradient shine */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full animate-[shimmer_2s_infinite]" style={{ backgroundSize: '200% 100%' }} />
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -103,10 +119,10 @@ export default function RsiBar({
         <span className="text-xs font-medium text-muted-foreground">
           RSI Score
         </span>
-        <div className="flex items-baseline gap-1">
-          <span className={`text-2xl font-black tracking-tighter ${getColor().replace('bg-', 'text-')}`}>
-            {safeScore.toFixed(1)}
-          </span>
+        <div className="flex items-baseline gap-1 tabular-nums">
+          <motion.span className={`text-2xl font-black tracking-tighter ${getColor().replace('bg-', 'text-')}`}>
+            {displayScore}
+          </motion.span>
           <span className="text-sm font-bold text-muted-foreground">%</span>
         </div>
       </div>

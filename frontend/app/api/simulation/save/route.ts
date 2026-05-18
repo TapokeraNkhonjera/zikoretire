@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       savingBehavior = "consistent",
 
       lifestyle = "moderate",
+      historicalData = null,
 
       results,
       scenarios = [],
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
       const existingSims = await prisma.simulation.findMany({
         where: {
           userId,
+          name,
           age,
           retirementAge,
           monthlyIncome,
@@ -122,6 +124,7 @@ export async function POST(req: Request) {
       incomeType,
       savingBehavior,
       lifestyle,
+      historicalData,
       results
     })
 
@@ -156,6 +159,7 @@ export async function POST(req: Request) {
         inflationRate,
 
         lifestyle,
+        historicalData: historicalData || null,
 
     // ✅ FIX ENUM CASE
     growthModel: growthModel.toUpperCase(),
@@ -225,7 +229,8 @@ const savedResult = await prisma.result.create({
             
             includeIrregular: scenario.inputs.includeIrregular || false,
             extraContribution: Number(scenario.inputs.extraContribution || 0),
-            lifestyle: "moderate"
+            lifestyle: "moderate",
+            historicalData: scenario.inputs.historicalData || null
           }
         });
 

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"; // ✅ CORRECT IMPORT
 // CREATE USER
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, mlTrainingConsent } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         password: hashedPassword, // ✅ consistent
+        mlTrainingConsent: Boolean(mlTrainingConsent),
       },
     });
 

@@ -12,6 +12,7 @@ import {
   Home,
   BarChart3,
   Settings,
+  FileSpreadsheet
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";

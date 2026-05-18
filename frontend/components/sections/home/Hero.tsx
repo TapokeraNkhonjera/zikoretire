@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -14,27 +15,30 @@ interface PlatformStats {
 
 export default function Hero() {
   const router = useRouter();
+
   const [stats, setStats] = useState<PlatformStats>({
     totalUsers: 0,
     totalSavings: 0,
     accuracyRate: 0,
-    uptimePercentage: 0
+    uptimePercentage: 0,
   });
 
   useEffect(() => {
-    // Fetch real stats from API
-    fetch('/api/stats/platform')
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error('Failed to fetch stats:', err));
+    fetch("/api/stats/platform")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch((err) =>
+        console.error("Failed to fetch stats:", err)
+      );
   }, []);
+
   return (
-    <section className="relative w-full px-6 overflow-hidden py-28 md:px-12 lg:px-20">
+    <section className="relative w-full overflow-hidden px-6 py-24 md:px-12 lg:px-20">
 
       {/* GRID BACKGROUND */}
-      <div className="absolute inset-0 -z-10 opacity-[0.05]">
+      <div className="absolute inset-0 -z-10 opacity-[0.04]">
         <div
-          className="w-full h-full"
+          className="h-full w-full"
           style={{
             backgroundImage: `
               linear-gradient(to right, black 1px, transparent 1px),
@@ -45,129 +49,151 @@ export default function Hero() {
         />
       </div>
 
-      {/* SUBTLE GRADIENT GLOW */}
+      {/* GLOW */}
+      <div className="absolute right-0 top-0 -z-10 h-[500px] w-[500px] rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="grid items-center gap-16 mx-auto max-w-7xl md:grid-cols-2">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
 
         {/* LEFT CONTENT */}
-        <div className="space-y-8">
+        <div className="space-y-7">
 
-          <div className="inline-flex items-center px-3 py-1 text-xs border rounded-full text-muted-foreground">
+          <div className="inline-flex items-center rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground backdrop-blur">
             Pension Projection System
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-heading leading-[1.1] tracking-tight">
-            Plan Your Retirement
-            <br />
-            <span className="text-primary">
-              With Confidence
-            </span>
-          </h1>
+          <div className="space-y-5">
 
-          <p className="max-w-lg text-lg text-muted-foreground">
-            ZikoRetire helps you simulate pension growth, estimate future income,
-            and understand if your savings will truly sustain your lifestyle.
-          </p>
+            <h1 className="font-heading text-5xl leading-[1.05] tracking-tight md:text-6xl">
+              Plan Your Retirement
+              <br />
+              <span className="text-primary">
+                With Confidence
+              </span>
+            </h1>
 
-          <div className="flex gap-4">
-            <Button 
-              size="lg" 
-              className="shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:scale-105 transition-all duration-200"
-              onClick={() => router.push('/auth/signin')}
-            >
-              Start Simulation
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <p className="max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
+              ZikoRetire helps users simulate pension growth,
+              estimate future retirement income, and understand
+              long-term financial readiness using transparent,
+              data-driven projections.
+            </p>
 
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200"
-              onClick={() => router.push('/about')}
-            >
-              Learn More
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Built for Malawi’s pension framework • Simple • Transparent • Data-driven
-          </p>
+          {/* BUTTONS */}
+          <div className="flex flex-wrap gap-3 pt-1">
+
+            <Button
+              size="sm"
+              className="h-10 rounded-lg px-5 text-sm shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.03] hover:shadow-primary/40"
+              onClick={() => router.push("/auth/signin")}
+            >
+              Start Simulation
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-lg px-5 text-sm transition-all duration-300 hover:scale-[1.03] hover:bg-primary hover:text-primary-foreground"
+              onClick={() => router.push("/about")}
+            >
+              Learn More
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+
+          </div>
+
+          {/* FOOTNOTE */}
+          <div className="flex flex-wrap items-center gap-5 pt-2 text-xs text-muted-foreground">
+
+            <div>
+              <span className="font-semibold text-foreground">
+                {stats.totalUsers.toLocaleString()}
+              </span>{" "}
+              Active Users
+            </div>
+
+            <div>
+              <span className="font-semibold text-foreground">
+                MWK {(stats.totalSavings / 1000000).toFixed(1)}M
+              </span>{" "}
+              Simulated
+            </div>
+
+            <div>
+              <span className="font-semibold text-primary">
+                {stats.accuracyRate}%
+              </span>{" "}
+              Accuracy
+            </div>
+
+          </div>
 
         </div>
 
-        {/* RIGHT VISUAL */}
-        <div className="relative">
+        {/* RIGHT MOCKUP */}
+        <div className="relative flex items-center justify-center">
 
-          {/* GLOW */}
-          <div className="absolute opacity-40 -inset-2 rounded-2xl bg-gradient-to-r from-primary/30 to-transparent blur-2xl" />
+          {/* BACK GLOW */}
+          <div className="absolute h-[420px] w-[420px] rounded-full bg-primary/15 blur-3xl" />
 
-          {/* MAIN CARD */}
-          <div className="relative p-6 border shadow-2xl bg-card border-border/50 rounded-2xl backdrop-blur">
+          {/* MACBOOK IMAGE */}
+          <div
+            className="
+              relative
+              w-full
+              max-w-[760px]
+              transition-all
+              duration-500
+              hover:-translate-y-2
+              hover:scale-[1.01]
+            "
+          >
 
-            {/* HEADER */}
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-sm font-medium">Projection Overview</span>
-              <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                RSI 72%
-              </span>
-            </div>
-
-            {/* CHART (FAKE BUT REALISTIC) */}
-            <div className="relative h-40 mb-6 overflow-hidden rounded-xl bg-muted/40">
-
-              {/* Line */}
-              <div className="absolute inset-0 flex items-end px-4">
-                <div className="w-full h-[2px] bg-gradient-to-r from-primary/20 via-primary to-primary/20 relative">
-
-                  {/* Dot */}
-                  <div className="absolute right-0 w-3 h-3 translate-x-1/2 -translate-y-1/2 rounded-full shadow-md bg-primary shadow-primary/50" />
-
-                </div>
-              </div>
-
-              {/* Subtle bars */}
-              <div className="absolute inset-0 flex items-end justify-between px-3 pb-2 opacity-40">
-                {[20, 35, 50, 70, 90].map((h, i) => (
-                  <div
-                    key={i}
-                    className="w-2 rounded-sm bg-primary/30"
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
-              </div>
-
-            </div>
-
-            {/* DATA */}
-            <div className="space-y-4">
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Active Users</span>
-                <span className="font-semibold">{stats.totalUsers.toLocaleString()}</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Savings</span>
-                <span className="font-semibold">MWK {(stats.totalSavings / 1000000).toFixed(1)}M</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Accuracy</span>
-                <span className="font-medium text-primary">{stats.accuracyRate}%</span>
-              </div>
-
-            </div>
+            <Image
+              src="/uploads/LAPOTOP-MOCKUP.png"
+              alt="ZikoRetire Dashboard Mockup"
+              width={1400}
+              height={1000}
+              priority
+              className="
+                h-auto
+                w-full
+                object-contain
+                drop-shadow-[0_30px_60px_rgba(0,0,0,0.28)]
+              "
+            />
 
           </div>
 
-          {/* FLOATING MINI CARD */}
-          <div className="absolute p-4 border shadow-lg -bottom-6 -left-6 bg-card rounded-xl border-border/50 w-44">
-            <p className="mb-1 text-xs text-muted-foreground">
-              Contribution
+          {/* FLOATING STATS CARD */}
+          <div
+            className="
+              absolute
+              bottom-2
+              left-0
+              hidden
+              rounded-2xl
+              border
+              border-border/60
+              bg-background/90
+              p-4
+              shadow-2xl
+              backdrop-blur-xl
+              md:block
+            "
+          >
+            <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Monthly Contribution
             </p>
-            <p className="text-lg font-semibold">
-              MWK 60,000/mo
+
+            <p className="text-lg font-semibold tracking-tight">
+              MWK 60,000
+            </p>
+
+            <p className="mt-1 text-xs text-primary">
+              +12% projection growth
             </p>
           </div>
 

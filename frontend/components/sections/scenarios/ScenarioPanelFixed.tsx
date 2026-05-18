@@ -7,6 +7,7 @@ import { ProjectionInputs } from "@/types/ProjectionInputs";
 import { ScenarioItem } from "@/types/scenario";
 import { hasOverrides } from "./scenario-utils";
 import NudgeSuggestions from "@/components/ui/NudgeSuggestions";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface ScenarioPanelProps {
   isBase: boolean;
@@ -32,6 +33,7 @@ export default function ScenarioPanel({
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const { settings } = useSettings();
 
   // Current inputs
   const currentInputs: ProjectionInputs = isBase ? baseInputs : scenario?.inputs || baseInputs;
@@ -39,7 +41,7 @@ export default function ScenarioPanel({
 
   // ML Analysis function
   const analyzeWithML = async () => {
-    if (!isBase || !baseInputs) return;
+    if (!isBase || !baseInputs || !settings.suggestionCardsEnabled) return;
 
     setAnalyzing(true);
     try {
@@ -196,7 +198,7 @@ export default function ScenarioPanel({
         ) : (
           <div className="space-y-6">
             {/* ML Suggestions */}
-            {isBase && suggestions && (
+            {isBase && settings.suggestionCardsEnabled && suggestions && (
               <NudgeSuggestions
                 suggestions={suggestions}
                 isLoading={analyzing}

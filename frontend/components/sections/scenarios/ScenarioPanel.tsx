@@ -14,6 +14,7 @@ interface ScenarioPanelProps {
   isBase: boolean;
   hasScenarios: boolean;
   baseInputs: ProjectionInputs;
+  baseResults?: ProjectionResult | null;
   scenario: ScenarioItem | null;
   onChange: (id: string, data: ProjectionInputs) => void;
   onUpdateResult: (id: string, result: ProjectionResult) => void;
@@ -26,6 +27,7 @@ export default function ScenarioPanel({
   isBase,
   hasScenarios,
   baseInputs,
+  baseResults,
   scenario,
   onChange,
   onUpdateResult,
@@ -33,7 +35,6 @@ export default function ScenarioPanel({
   onBaseInputChange,
   onBaseResultUpdate,
 }: ScenarioPanelProps) {
-  const [localResults, setLocalResults] = useState<ProjectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[] | null>(null);
@@ -42,13 +43,13 @@ export default function ScenarioPanel({
   const { settings } = useSettings();
 
   const currentInputs: ProjectionInputs = isBase ? baseInputs : scenario?.inputs || baseInputs;
-  const currentResults = isBase ? localResults : scenario?.results || null;
+  const currentResults = isBase ? (baseResults || null) : scenario?.results || null;
 
   const analyzeWithML = async () => {
     console.log('analyzeWithML called', { isBase, baseInputs, scenarioId: scenario?.id });
     
-    if (!isBase || !baseInputs) {
-      console.log('Early return: !isBase || !baseInputs');
+    if (!isBase || !baseInputs || !settings.suggestionCardsEnabled) {
+      console.log('Early return: !isBase || !baseInputs || !suggestionCardsEnabled');
       return;
     }
 
@@ -165,7 +166,6 @@ export default function ScenarioPanel({
       };
 
       if (isBase) {
-        setLocalResults(result);
         // Notify parent component about the result
         if (onBaseResultUpdate) {
           onBaseResultUpdate(result);

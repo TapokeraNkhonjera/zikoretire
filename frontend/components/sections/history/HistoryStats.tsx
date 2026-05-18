@@ -170,7 +170,7 @@ export default function HistoryStats({
         <motion.div
           animate={glowAnimation}
           transition={transition}
-          className={`${base} bg-blue-100 text-blue-600`}
+          className={`${base} bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400`}
         >
           <ArrowUpRight className="w-3.5 h-3.5" />
           +{trendPercent.toFixed(1)}%
@@ -189,7 +189,7 @@ export default function HistoryStats({
             ]
           }}
           transition={transition}
-          className={`${base} bg-red-100 text-red-600`}
+          className={`${base} bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400`}
         >
           <ArrowDownRight className="w-3.5 h-3.5" />
           {trendPercent.toFixed(1)}%
@@ -198,7 +198,7 @@ export default function HistoryStats({
     }
 
     return (
-      <div className={`${base} bg-gray-100 text-gray-500`}>
+      <div className={`${base} bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400`}>
         <Minus className="w-3.5 h-3.5" />
         0%
       </div>
@@ -236,8 +236,8 @@ export default function HistoryStats({
                   <div className="flex flex-col items-end gap-2">
 
                     {/* ICON */}
-                    <div className="flex items-center justify-center border rounded-md w-9 h-9 bg-muted/40">
-                      <Icon className="w-4 h-4 text-black" />
+                    <div className="flex items-center justify-center border rounded-md w-9 h-9 bg-muted/40 dark:border-border">
+                      <Icon className="w-4 h-4 text-foreground" />
                     </div>
 
                     {/* TREND BELOW ICON */}
@@ -254,7 +254,7 @@ export default function HistoryStats({
                     className={`text-2xl sm:text-3xl font-semibold tabular-nums ${
                       stat.highlight
                         ? getRsiColor()
-                        : "text-black"
+                        : "text-foreground"
                     }`}
                   >
                     {"prefix" in stat && stat.prefix && `${stat.prefix} `}

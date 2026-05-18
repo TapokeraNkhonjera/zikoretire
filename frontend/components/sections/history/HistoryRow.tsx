@@ -142,10 +142,9 @@ export default function HistoryRow({
         </Badge>
       </TableCell>
 
-      {/* ✅ FIXED: use result monthly income */}
       <TableCell className="font-medium text-right">
-        {result?.estimatedMonthlyIncome
-          ? `MWK ${result.estimatedMonthlyIncome.toLocaleString()}`
+        {result?.monthlyIncome
+          ? `MWK ${result.monthlyIncome.toLocaleString()}`
           : "-"}
       </TableCell>
 

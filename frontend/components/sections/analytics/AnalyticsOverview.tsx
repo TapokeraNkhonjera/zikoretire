@@ -78,24 +78,24 @@ export default function AnalyticsOverview({ data }: Props) {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
       {/* BEST STRATEGY */}
-      <Card className="transition border border-gray-200 hover:shadow-sm">
+      <Card className="transition border border-border/60 bg-card hover:shadow-sm">
         <CardContent className="p-5">
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-medium text-gray-500">
+            <p className="text-xs font-medium text-muted-foreground">
               Best Strategy
             </p>
 
-            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50">
-              <Trophy className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50 dark:bg-blue-900/50">
+              <Trophy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
-          <p className="text-lg font-semibold text-black">
+          <p className="text-lg font-semibold text-foreground">
             {bestLabel}
           </p>
 
-          <p className="mt-1 text-xs text-gray-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             {bestSub}
           </p>
 
@@ -103,16 +103,16 @@ export default function AnalyticsOverview({ data }: Props) {
       </Card>
 
       {/* RSI SCORE */}
-      <Card className="transition border border-gray-200 hover:shadow-sm">
+      <Card className="transition border border-border/60 bg-card hover:shadow-sm">
         <CardContent className="p-5">
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-medium text-gray-500">
+            <p className="text-xs font-medium text-muted-foreground">
               Retirement Score
             </p>
 
-            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50">
-              <Gauge className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50 dark:bg-blue-900/50">
+              <Gauge className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export default function AnalyticsOverview({ data }: Props) {
             {rsi.toFixed(1)}%
           </p>
 
-          <p className="mt-1 text-xs text-gray-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             {getRsiState()} readiness
           </p>
 
@@ -128,24 +128,24 @@ export default function AnalyticsOverview({ data }: Props) {
       </Card>
 
       {/* PROJECTION */}
-      <Card className="transition border border-gray-200 hover:shadow-sm">
+      <Card className="transition border border-border/60 bg-card hover:shadow-sm">
         <CardContent className="p-5">
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-medium text-gray-500">
+            <p className="text-xs font-medium text-muted-foreground">
               Best Projection
             </p>
 
-            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50 dark:bg-blue-900/50">
+              <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
-          <p className="text-2xl font-bold text-black">
+          <p className="text-2xl font-bold text-foreground">
             MWK {best.projectedValue.toLocaleString()}
           </p>
 
-          <p className="mt-1 text-xs text-gray-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             At retirement
           </p>
 
@@ -153,28 +153,28 @@ export default function AnalyticsOverview({ data }: Props) {
       </Card>
 
       {/* IMPACT */}
-      <Card className="transition border border-gray-200 hover:shadow-sm">
+      <Card className="transition border border-border/60 bg-card hover:shadow-sm">
         <CardContent className="p-5">
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-medium text-gray-500">
+            <p className="text-xs font-medium text-muted-foreground">
               Scenario Impact
             </p>
 
-            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50">
-              <Sparkles className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-center rounded-md w-9 h-9 bg-blue-50 dark:bg-blue-900/50">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
           <p className={`text-2xl font-bold ${
-            improvement > 0 ? "text-blue-600" : "text-gray-700"
+            improvement > 0 ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
           }`}>
             {improvement > 0
               ? `+MWK ${improvement.toLocaleString()}`
               : "No improvement"}
           </p>
 
-          <p className="mt-1 text-xs text-gray-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             {improvement > 0
               ? `${improvementPercent.toFixed(1)}% better than base`
               : "Scenarios did not improve outcome"}

@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
             projectedValue:
               sim.result?.projectedValue ?? 0,
 
-            monthlyRetirementIncome:
+            estimatedMonthlyIncome:
               sim.result?.estimatedMonthlyIncome ??
               sim.result?.monthlyIncome ??
               0,
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
               projectedValue:
                 s.result?.projectedValue ?? 0,
 
-              monthlyRetirementIncome:
+              estimatedMonthlyIncome:
                 s.result?.estimatedMonthlyIncome ??
                 s.result?.monthlyIncome ??
                 0,

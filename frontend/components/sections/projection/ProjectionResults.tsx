@@ -1,11 +1,14 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Wallet,
   Banknote,
   TrendingDown,
-  Gauge
+  Gauge,
+  AlertTriangle,
+  Info
 } from "lucide-react"
 
 import ResultCard from "./ResultsCard"
@@ -44,6 +47,10 @@ export interface ProjectionMeta {
   mlFactorsCount?: number
   mlExplanation?: string | null
   mlAdvice?: string | null
+  // Compliance properties
+  complianceWarning?: string
+  earlyRetirementPenalty?: number
+  isFormalSector?: boolean
 }
 
 export interface ProjectionResult {
@@ -117,31 +124,70 @@ export default function ProjectionResults({
             </div>
           )}
 
+          {/* ================= COMPLIANCE WARNING ================= */}
+          {results.meta?.complianceWarning && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <div className="font-semibold mb-1">Pension Act Compliance Notice</div>
+                {results.meta.complianceWarning}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* ================= PENALTY INDICATOR ================= */}
+          {results.meta?.earlyRetirementPenalty && results.meta.earlyRetirementPenalty > 0 && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <Info className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                <div className="font-semibold mb-1">Early Retirement Penalty Applied</div>
+                <div>Your projected savings have been reduced by {(results.meta.earlyRetirementPenalty * 100).toFixed(1)}% due to early retirement before the statutory age of 50.</div>
+                <div className="text-sm mt-1">
+                  Strategy: {results.meta.isFormalSector ? 'Formal Sector' : 'Informal Sector'} • 
+                  Projection adjusted per Malawi Pension Act 2023
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* ================= RESULT CARDS ================= */}
           <div className="grid gap-4 sm:grid-cols-2">
 
             <ResultCard
               icon={<Wallet className="w-5 h-5 text-primary" />}
-              label="Projected Savings"
-              value={`MWK ${results.projectedSavings.toLocaleString()}`}
+              label={
+                <div className="flex items-center gap-2">
+                  <span>Projected Savings</span>
+                  {(results.meta?.earlyRetirementPenalty ?? 0) > 0 && (
+                    <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full font-medium">
+                      -{((results.meta?.earlyRetirementPenalty ?? 0) * 100).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              }
+              numericValue={results.projectedSavings}
+              prefix="MWK "
             />
 
             <ResultCard
-              icon={<Banknote className="w-5 h-5 text-muted-foreground" />}
+              icon={<Banknote className="w-5 h-5 text-primary" />}
               label="Monthly Income"
-              value={`MWK ${results.estimatedMonthlyIncome.toLocaleString()}`}
+              numericValue={results.estimatedMonthlyIncome}
+              prefix="MWK "
             />
 
             <ResultCard
-              icon={<TrendingDown className="w-5 h-5 text-muted-foreground" />}
+              icon={<TrendingDown className="w-5 h-5 text-primary" />}
               label="Inflation Adjusted"
-              value={`MWK ${results.inflationAdjustedValue.toLocaleString()}`}
+              numericValue={results.inflationAdjustedValue}
+              prefix="MWK "
             />
 
             <ResultCard
-              icon={<Gauge className="w-5 h-5 text-muted-foreground" />}
+              icon={<Gauge className="w-5 h-5 text-primary" />}
               label="RSI Score"
-              value={`${results.rsiScore.toFixed(1)}%`}
+              numericValue={results.rsiScore}
+              suffix="%"
             />
 
           </div>
@@ -194,6 +240,33 @@ export default function ProjectionResults({
                     {results.meta.engine === "ml-v1" ? "ZikoML" : "Rule Fallback"}
                   </p>
                 </div>
+
+                {/* Compliance Information */}
+                {results.meta.isFormalSector !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Sector Type:</span>
+                    <p className="font-medium">
+                      {results.meta.isFormalSector ? (
+                        <span className="text-blue-600">Formal Sector</span>
+                      ) : (
+                        <span className="text-green-600">Informal Sector</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {results.meta.earlyRetirementPenalty !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Compliance Status:</span>
+                    <p className="font-medium">
+                      {results.meta.earlyRetirementPenalty > 0 ? (
+                        <span className="text-red-600">Penalty Applied</span>
+                      ) : (
+                        <span className="text-green-600">Compliant</span>
+                      )}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <span className="text-muted-foreground">ML Status:</span>

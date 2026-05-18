@@ -284,7 +284,7 @@ export default function SimulationComparison({ simulations }: SimulationComparis
     return selectedSimulationData.map(sim => ({
       name: sim.name || `Simulation ${sim.id.slice(-4)}`,
       projectedSavings: sim.result.projectedValue,
-      monthlyIncome: sim.result.monthlyRetirementIncome || 0,
+      monthlyIncome: sim.result.estimatedMonthlyIncome || 0,
       rsiScore: sim.result.rsiScore,
     }))
   }, [selectedSimulationData])

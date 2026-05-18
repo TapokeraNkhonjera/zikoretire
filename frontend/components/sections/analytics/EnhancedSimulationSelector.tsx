@@ -13,7 +13,7 @@ interface AnalyticsData {
   name: string
   result: {
     projectedValue: number
-    monthlyRetirementIncome: number
+    estimatedMonthlyIncome: number
     rsiScore: number
     riskScore: number | null
     confidenceScore: number | null
@@ -113,7 +113,8 @@ export default function EnhancedSimulationSelector({
     return "text-red-600 bg-red-50"
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null) return "MWK 0"
     return `MWK ${value.toLocaleString()}`
   }
 
@@ -221,7 +222,7 @@ export default function EnhancedSimulationSelector({
                 
                 <div className="text-center p-3 border rounded-lg">
                   <div className="text-lg font-bold text-green-600">
-                    {formatCurrency(selectedSimulation.result.monthlyRetirementIncome)}
+                    {formatCurrency(selectedSimulation.result.estimatedMonthlyIncome)}
                   </div>
                   <div className="text-xs text-muted-foreground">Monthly Income</div>
                 </div>
@@ -289,7 +290,7 @@ export default function EnhancedSimulationSelector({
                     
                     <div>
                       <div className="font-medium text-green-600">
-                        {formatCurrency(simulation.result.monthlyRetirementIncome)}
+                        {formatCurrency(simulation.result.estimatedMonthlyIncome)}
                       </div>
                       <div className="text-xs text-muted-foreground">Monthly</div>
                     </div>

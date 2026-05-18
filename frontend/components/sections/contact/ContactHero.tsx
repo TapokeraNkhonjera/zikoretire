@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Mail, Phone, MessageSquare, Send, HelpCircle, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContactHero() {
   const router = useRouter();

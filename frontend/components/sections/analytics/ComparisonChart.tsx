@@ -74,14 +74,14 @@ export default function ComparisonChart({ data }: Props) {
   /* ================= UI ================= */
 
   return (
-    <div className="p-6 bg-white border border-gray-200 rounded-2xl">
+    <div className="p-6 bg-card text-card-foreground border border-border/60 rounded-2xl">
 
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-black">
+        <h3 className="text-lg font-semibold text-foreground">
           Growth Comparison
         </h3>
 
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Compare how different scenarios grow over time
         </p>
       </div>
